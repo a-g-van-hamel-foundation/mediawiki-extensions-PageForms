@@ -1351,7 +1351,7 @@ END;
 							$form_field->hasFieldArg( 'mapping cargo field' ) ) ||
 							$form_field->getUseDisplayTitle() ) ) {
 							
-							$cur_value = $this->processCurrentValue( $cur_value, $form_field, $delimiter, $form_submitted );
+							$cur_value = $this->processMappedValue( $cur_value, $form_field, $delimiter, $form_submitted );
 						}
 
 						// Call hooks - unfortunately this has to be split into two
@@ -1966,11 +1966,10 @@ END;
 		return [ $form_text, $page_text, $form_page_title, $generated_page_name ];
 	}
 
-
 	/**
 	 * Helper method for formHTML
 	 */
-	private function processCurrentValue(
+	private function processMappedValue(
 		$cur_value,
 		$form_field,
 		$delimiter,
