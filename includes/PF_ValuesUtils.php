@@ -523,6 +523,48 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		return $pages;
 	}
 
+	/**
+	 * Get sequential array of pages in SMW concept using
+	 * query by mapping property, display title or pagename
+	 * (https://www.semantic-mediawiki.org/wiki/Help:Full-text_search)
+	 * Version for remote autocompletion
+	 * 
+	 * @param string $conceptName
+	 * @param string|null $substring
+	 * @param string|null $mappingProperty - query condition only
+	 * @param bool $useDisplayTitle - used in query condition only
+	 * @return array
+	 */
+	public static function getAllPagesForConceptRemotely( 
+		string $conceptName,
+		mixed $substring = null,
+		mixed $mappingProperty = null,
+		bool $useDisplayTitle = false
+	): array {
+		$store = PFUtils::getSMWStore();
+		if ( $store === null ) {
+			return [];
+		}
+		// Build query string and prelims
+		$rawQuery = "";
+		$conceptTitle = Title::makeTitleSafe( SMW_NS_CONCEPT, $conceptName );
+		$conceptArg = "[[{$conceptTitle}]]";
+		global $wgPageFormsAutocompleteOnAllChars;
+		$prefixWildcard = ( $wgPageFormsAutocompleteOnAllChars ) ? "*": "";
+		if ( $mappingProperty !== null ) {
+			$rawQuery .= "{$conceptArg} [[{$mappingProperty}::~{$prefixWildcard}{$substring}*]] OR {$conceptArg} [[{$mappingProperty}::like:{$prefixWildcard}{$substring}*]]";
+		} elseif ( $useDisplayTitle ) {
+			// Expects that 'Display title of' is available as a property
+			// @todo - may not be the case. Is a solution feasible?
+			$rawQuery .= "{$conceptArg} [[Display title of::~{$prefixWildcard}{$substring}*]] OR {$conceptArg} [[Display title of::like:{$prefixWildcard}{$substring}*]]";
+		} else {
+			$rawQuery .= "{$conceptArg} [[~{$prefixWildcard}{$substring}*]] OR {$conceptArg} [[like:{$prefixWildcard}{$substring}*]]";
+		}
+		// Run query and get pages
+		$retrievedPages = self::getAllPagesForQuery( $rawQuery );
+		return $retrievedPages;
+	}
+
 	public static function getAllPagesForNamespace( $namespaceStr, $substring = null ) {
 		global $wgLanguageCode, $wgPageFormsUseDisplayTitle;
 
