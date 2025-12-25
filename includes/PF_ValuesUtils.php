@@ -903,6 +903,19 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		}
 	}
 
+	/* Convenience method the other way around */
+	public static function getValuesString( mixed $value, $delimiter = null ) {
+		$res = "";
+		if ( is_string( $value ) ) {
+			$res = $value;
+		} elseif ( is_array( $value ) ) {
+			$res = $delimiter !== null
+				? implode( $delimiter, $value )
+				: reset( $value );
+		}
+		return trim( $res );
+	}
+
 	public static function getValuesFromExternalURL( $external_url_alias, $substring ) {
 		global $wgPageFormsAutocompletionURLs;
 		if ( empty( $wgPageFormsAutocompletionURLs ) ) {

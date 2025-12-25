@@ -1350,16 +1350,8 @@ END;
 							( $form_field->hasFieldArg( 'mapping cargo table' ) &&
 							$form_field->hasFieldArg( 'mapping cargo field' ) ) ||
 							$form_field->getUseDisplayTitle() ) ) {
-							// If the input type is "tokens', the value is not
-							// an array, but the delimiter still needs to be set.
-							if ( !is_array( $cur_value ) ) {
-								if ( $form_field->isList() ) {
-									$delimiter = $form_field->getFieldArg( 'delimiter' );
-								} else {
-									$delimiter = null;
-								}
-							}
-							$cur_value = $form_field->valueStringToLabels( $cur_value, $delimiter, $form_submitted );
+							
+							$cur_value = $this->processCurrentValue( $cur_value, $form_field, $delimiter, $form_submitted );
 						}
 
 						// Call hooks - unfortunately this has to be split into two
@@ -1972,6 +1964,45 @@ END;
 		}
 
 		return [ $form_text, $page_text, $form_page_title, $generated_page_name ];
+	}
+
+
+	/**
+	 * Helper method for formHTML
+	 */
+	private function processCurrentValue(
+		$cur_value,
+		$form_field,
+		$delimiter,
+		$form_submitted
+	) {
+		if ( !is_array( $cur_value ) ) {
+			// If the input type is "tokens', the value is not
+			// an array, but the delimiter still needs to be set.
+			$delimiter = $form_field->isList()
+				? $form_field->getFieldArg( 'delimiter' )
+				: null;
+		}
+		$cur_args = $form_field->getFieldArgs();
+		$cur_args['possible_values'] = $form_field->getPossibleValues();
+		$inputType = $form_field->getInputType();
+		
+		if ( $inputType === 'tokens' ) {
+			// Don't turn current values into labels just yet
+			// Mapping is done later on
+			$cur_value = PFValuesUtils::getValuesArray( $cur_value, $delimiter );
+		} elseif ( $inputType === 'combobox' ) {
+			$cur_value_arr = PFValuesUtils::getValuesArray( $cur_value, null );
+			$cur_value_arr = PFMappingUtils::getMappedValuesForInput( $cur_value_arr, $cur_args );
+			$cur_value = $cur_value_arr;
+		} else {
+			// @todo: improve support for combobox, listbox ?
+			$cur_value_str = PFValuesUtils::getValuesString( $cur_value, $delimiter );
+			$cur_value_arr = PFMappingUtils::valueStringToLabels( $cur_value_str, $delimiter, $cur_args, $form_submitted );
+			// Sequential array back to string :
+			$cur_value = PFValuesUtils::getValuesString( $cur_value_arr, $delimiter );
+		}
+		return $cur_value;
 	}
 
 	/**
