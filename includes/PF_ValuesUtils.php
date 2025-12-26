@@ -985,14 +985,14 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 	}
 
 	/**
-	 * Returns an array of the names of pages that are the result of an SMW query.
-	 *
+	 * Returns an array of pagenames that are the result of an SMW query.
+	 * Does not return display titles or other mapped labels.
+	 * 
 	 * @param string $rawQuery the query string like [[Category:Trees]][[age::>1000]]
 	 * @return array
 	 */
 	public static function getAllPagesForQuery( $rawQuery ) {
 		global $wgPageFormsMaxAutocompleteValues;
-		global $wgPageFormsUseDisplayTitle;
 
 		$rawQuery .= "|named args=yes|link=none|limit=$wgPageFormsMaxAutocompleteValues|searchlabel=";
 		$rawQueryArray = explode( "|", $rawQuery );
@@ -1006,19 +1006,13 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 			SMWQueryProcessor::SPECIAL_PAGE, '', $printouts );
 		$res = PFUtils::getSMWStore()->getQueryResult( $queryObj );
 		$rows = $res->getResults();
-		$titles = [];
-		$pages = [];
+		$pageNames = [];
 
 		foreach ( $rows as $diWikiPage ) {
-			$pages[] = $diWikiPage->getDbKey();
-			$titles[] = $diWikiPage->getTitle();
+			$pageNames[] = $diWikiPage->getTitle()->getFullText();
 		}
 
-		if ( $wgPageFormsUseDisplayTitle ) {
-			$pages = PFMappingUtils::getDisplayTitles( $titles );
-		}
-
-		return $pages;
+		return $pageNames;
 	}
 
 	public static function processSemanticQuery( $query, $substr = '' ) {
