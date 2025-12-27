@@ -227,7 +227,7 @@ const Sortable = require( 'ext.pageforms.sortable' );
 				const htmlElements = inputData.$selection[0].children[0].children;
 				term = htmlElements[htmlElements.length - 1].children[0].value;
 			}
-			return pf.select2.base.prototype.textHighlight( result.id, term );
+			return pf.select2.base.prototype.textHighlight( result.text, term );
 		};
 		opts.language.searching = function() {
 			return mw.msg( "pf-autocomplete-searching" );
@@ -353,7 +353,7 @@ const Sortable = require( 'ext.pageforms.sortable' );
 					value.pfautocomplete.forEach( (item) => {
 						if (item.displaytitle !== undefined) {
 							values.push({
-								id: item.displaytitle, text: item.displaytitle
+								id: item.title, text: item.displaytitle
 							});
 						} else {
 							values.push({
@@ -428,21 +428,11 @@ const Sortable = require( 'ext.pageforms.sortable' );
 				if (data.pfautocomplete !== undefined) {
 					$( '#loading-' + input_id ).hide();
 					data.pfautocomplete.forEach( (item) => {
+						item.id = item.title;						
 						if (item.displaytitle !== undefined) {
-							let displayTitle;
-							if (item.title === item.displaytitle) {
-								displayTitle = item.title;
-							} else {
-								const containsTitleInParentheses = item.displaytitle.includes("(" + item.title + ")");
-								displayTitle = containsTitleInParentheses
-									? item.displaytitle
-									: item.displaytitle + " (" + item.title + ")";
-							}
-							item.text = displayTitle;
-							item.id = displayTitle
+							item.text = item.displaytitle;
 						} else {
 							item.text = item.title;
-							item.id = item.title;
 						}
 					});
 					return {results: data.pfautocomplete};
