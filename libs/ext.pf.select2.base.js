@@ -223,6 +223,11 @@
 
 			autocomplete_opts.autocompletedatatype = $(input_id).attr( "autocompletedatatype" );
 			autocomplete_opts.autocompletesettings = $(input_id).attr( "autocompletesettings" );
+			if ( $(input_id).attr('mappingproperty') !== undefined ) {
+				autocomplete_opts.mappingproperty = $(input_id).attr( "mappingproperty" );
+			} else if( $(input_id).attr('mappingtemplate') !== undefined ) {
+				autocomplete_opts.mappingtemplate = $(input_id).attr( "mappingtemplate" );
+			}
 			return autocomplete_opts;
 		},
 
@@ -252,7 +257,7 @@
 				return markup;
 			}
 
-			const escapedMarkup = String(markup).replace(/[&<>"'\/\\]/g, (match) => replaceMap[match])
+			const escapedMarkup = String(markup).replace(/[&<>"'\/\\]/g, (match) => replaceMap[match]);
 
 			const boldStart = String.fromCharCode(1);
 			const boldEnd = String.fromCharCode(2);

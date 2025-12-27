@@ -254,6 +254,12 @@ const Sortable = require( 'ext.pageforms.sortable' );
 				return mw.msg( "pf-autocomplete-selection-too-big", maxvalues );
 			};
 		}
+		// Mapping types with remote autocompletion
+		if ($(input_id).attr("mappingproperty") !== undefined) {
+			opts.mappingproperty = $(input_id).attr("mappingproperty");
+		} else if ($(input_id).attr("mappingtemplate") !== undefined) {
+			opts.mappingtemplate = $(input_id).attr("mappingtemplate");
+		}
 		// opts.selectOnClose = true;
 		opts.adaptContainerCssClass = function( clazz ) {
 			if (clazz === "mandatoryField") {
@@ -383,9 +389,14 @@ const Sortable = require( 'ext.pageforms.sortable' );
 				my_server += '&cargo_where=' + table_and_field[2];
 			}
 		} else {
-			my_server += "?action=pfautocomplete&format=json&" +
-				autocomplete_opts.autocompletedatatype + "=" +
-				encodeURIComponent( data_source );
+			var autocomplete_param = autocomplete_type + "=" + encodeURIComponent( data_source );
+			var mapping_param = '';
+			if ( autocomplete_opts.mappingproperty !== undefined ) {
+				var mapping_param = '&mappingproperty=' + encodeURIComponent( autocomplete_opts.mappingproperty );
+			} else if ( autocomplete_opts.mappingtemplate !== undefined ) {
+				var mapping_param = '&mappingtemplate=' + encodeURIComponent( autocomplete_opts.mappingtemplate );
+			}
+			my_server += "?action=pfautocomplete&format=json&" + autocomplete_param + mapping_param;
 		}
 
 		const ajaxOpts = {
