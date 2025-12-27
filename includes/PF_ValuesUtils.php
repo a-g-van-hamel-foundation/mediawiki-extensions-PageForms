@@ -881,25 +881,24 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 	}
 
 	/**
-	 * Helper function to get an array of values out of what may be either
-	 * an array or a delimited string.
+	 * Helper function to get an array of values out of what 
+	 * may be an array or a delimited string.
 	 *
-	 * @param string[]|string $value
+	 * @param string[]|string|null $value
 	 * @param string $delimiter
 	 * @return string[]
 	 */
-	public static function getValuesArray( $value, $delimiter ) {
-		global $wgPageFormsUseDisplayTitle;
-
+	public static function getValuesArray( $value, $delimiter = null ) {
 		if ( is_array( $value ) ) {
 			return $value;
-		} elseif ( $value == null ) {
+		} elseif ( $value === null ) {
 			return [];
+		} elseif ( $delimiter !== null ) {
+			// string
+			return array_map( 'trim', explode( $delimiter, $value ) );
 		} else {
-			$values = array_map( 'trim', explode( $delimiter, $value ) );
-			return $wgPageFormsUseDisplayTitle
-				? array_values( PFMappingUtils::getLabelsForTitles( $values ) )
-				: $values;
+			// string, no delimiter
+			return [ $value ];
 		}
 	}
 

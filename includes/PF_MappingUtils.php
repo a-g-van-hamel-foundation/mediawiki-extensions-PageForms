@@ -42,7 +42,7 @@ class PFMappingUtils {
 	public static function getMappedValuesForInput( array $values, array $args = [] ) {
 		global $wgPageFormsUseDisplayTitle;
 		$mappingType = self::getMappingType( $args, $wgPageFormsUseDisplayTitle );
-		if ( self::isIndexedArray( $values ) == false ) {
+		if ( !self::isIndexedArray( $values ) ) {
 			// already named associative
 			$pages = array_keys( $values );
 			$values = self::getMappedValues( $pages, $mappingType, $args, $wgPageFormsUseDisplayTitle );
@@ -253,60 +253,70 @@ class PFMappingUtils {
 	}
 
 	/**
-	 * Map a template field value into sequential array of labels. 
-	 * Used when mapping submitted to possible values. 
-	 * Works with both local and remote autocompletion.
-	 * Previously in PF_FormField
-	 * 
-	 * @param string|null $valueString
-	 * @param string|null $delimiter
-	 * @param array $args
-	 * @param bool $form_submitted
-	 * @return string[]
+	 * @deprecated renamed
 	 */
 	public static function valueStringToLabels(
-		?string $valueString,
+		mixed $valueString,
 		?string $delimiter,
 		array $args = [],
-		bool $form_submitted = false
+		bool $form_submitted = false,
+		bool $getMapped = false
 	): array {
-        if ( $valueString == null ) {
-            return [];
-        } else {
-            $valueString = trim( $valueString );
-            $possibleValues = ( array_key_exists( 'possible_values', $args ) )
-                ? $args['possible_values'] 
-                : null;
-            if ( strlen( $valueString ) === 0 || $possibleValues === null ) {
-                return [ $valueString ];
-            }
-        }
-		if ( $delimiter !== null ) {
-			$values = array_map( 'trim', explode( $delimiter, $valueString ) );
-		} else {
-			$values = [ $valueString ];
-		}
+		self::mapValuesToLabels( $valueString, $delimiter, $args, $getMapped );
+	}
 
-		$labels = [];
+	/**
+	 * Maps values to an array of labels or value-label pairs.
+	 * Can be used to map submitted to possible values.
+	 * Works with both local and remote autocompletion.
+	 * (Previously part of PF_FormField but repurposed)
+	 * 
+	 * @param string|array|null $val
+	 * @param string|null $delimiter
+	 * @param array $args
+	 * @param bool $getMapped
+	 * @return string[]
+	 */
+	public static function mapValuesToLabels(
+		mixed $val,
+		?string $delimiter,
+		array $args = [],
+		bool $getMapped = true
+	): array {
+		if ( $val === null ) {
+			return [];
+		}
+		$values = PFValuesUtils::getValuesArray( $val, $delimiter ?? null );
+		$possibleValues = array_key_exists( 'possible_values', $args )
+			? $args['possible_values']
+			: null;
+		
 		// Remote autocompletion? Don't try mapping 
 		// current to possible values
+		$labels = $mappedValues = [];
         $valMax = PFValuesUtils::getMaxValuesToRetrieve();
-		$mode = ( $form_submitted && count( $possibleValues ) >= $valMax ) ? 'remote' : 'local'; 
-		if ( $mode == 'local' ) {
+		//$form_submitted &&
+		$mode = count( $possibleValues ) >= $valMax ? 'remote' : 'local';
+
+		if ( $mode === 'local' ) {
 			foreach ( $values as $value ) {
-				if ( $value != '' ) {
-					if ( array_key_exists( $value, $possibleValues ) ) {
-						$labels[] = $possibleValues[$value];
-					} else {
-						$labels[] = $value;
-					}
+				if ( $value === '' ) {
+					continue;
+				}
+				if ( $possibleValues !== null && array_key_exists( $value, $possibleValues ) ) {
+					$labels[] = $possibleValues[$value];
+					$mappedValues[$value] = $possibleValues[$value];
+				} else {
+					$labels[] = $value;
+					$mappedValues[$value] = $value;
 				}
 			}
-		} elseif ( $mode == 'remote' ) {
+		} elseif ( $mode === 'remote' ) {
 			$mappedValues = self::getMappedValuesForInput( $values, $args );
 			$labels = array_values( $mappedValues );
 		}
-		return $labels;
+
+		return $getMapped ? $mappedValues : $labels;
 	}
 
 	/**

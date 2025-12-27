@@ -1344,14 +1344,9 @@ END;
 								$cur_value_in_template = $this->getCargoBasedMapping( $cur_value_in_template, $mappingCargoTable, $mappingCargoValueField, $mappingCargoField, $form_field );
 							}
 						}
-						if ( $cur_value !== '' &&
-							( $form_field->hasFieldArg( 'mapping template' ) ||
-							$form_field->hasFieldArg( 'mapping property' ) ||
-							( $form_field->hasFieldArg( 'mapping cargo table' ) &&
-							$form_field->hasFieldArg( 'mapping cargo field' ) ) ||
-							$form_field->getUseDisplayTitle() ) ) {
-							
-							$cur_value = $this->processMappedValue( $cur_value, $form_field, $delimiter, $form_submitted );
+						if ( $this->formFieldHasLabelMapping( $cur_value, $form_field ) ) {
+							// Leave $cur_value as is - value only
+							// Labels mapped to values will be added to $other_args["value_labels"]
 						}
 
 						// Call hooks - unfortunately this has to be split into two
@@ -1967,17 +1962,15 @@ END;
 	}
 
 	/**
-	 * Helper method for formHTML
+	 * Helper method that creates an array mapping values to 
+	 * labels for use in $other_args["value_labels"]
 	 */
-	private function processMappedValue(
-		$cur_value,
-		$form_field,
-		$delimiter,
-		$form_submitted
+	private function getValueLabelMappings(
+		mixed $cur_value,
+		mixed $delimiter,
+		PFFormField $form_field
 	) {
 		if ( !is_array( $cur_value ) ) {
-			// If the input type is "tokens', the value is not
-			// an array, but the delimiter still needs to be set.
 			$delimiter = $form_field->isList()
 				? $form_field->getFieldArg( 'delimiter' )
 				: null;
@@ -1985,23 +1978,15 @@ END;
 		$cur_args = $form_field->getFieldArgs();
 		$cur_args['possible_values'] = $form_field->getPossibleValues();
 		$inputType = $form_field->getInputType();
-		
-		if ( $inputType === 'tokens' ) {
-			// Don't turn current values into labels just yet
-			// Mapping is done later on
-			$cur_value = PFValuesUtils::getValuesArray( $cur_value, $delimiter );
-		} elseif ( $inputType === 'combobox' ) {
-			$cur_value_arr = PFValuesUtils::getValuesArray( $cur_value, null );
-			$cur_value_arr = PFMappingUtils::getMappedValuesForInput( $cur_value_arr, $cur_args );
-			$cur_value = $cur_value_arr;
-		} else {
-			// @todo: improve support for combobox, listbox ?
-			$cur_value_str = PFValuesUtils::getValuesString( $cur_value, $delimiter );
-			$cur_value_arr = PFMappingUtils::valueStringToLabels( $cur_value_str, $delimiter, $cur_args, $form_submitted );
-			// Sequential array back to string :
-			$cur_value = PFValuesUtils::getValuesString( $cur_value_arr, $delimiter );
-		}
-		return $cur_value;
+
+		$mapped_values = PFMappingUtils::mapValuesToLabels(
+			$cur_value,
+			$delimiter ?? null,
+			$cur_args,
+			true
+		);
+
+		return $mapped_values;
 	}
 
 	/**
@@ -2089,6 +2074,15 @@ END;
 						$other_args['size'] = 100;
 					}
 				}
+			}
+		}
+
+		// Label mappings
+		if ( $this->formFieldHasLabelMapping( $cur_value, $form_field ) ) {
+			$delimiter = $form_field->getFieldArg( 'delimiter' );
+			$labelMappings = $this->getValueLabelMappings( $cur_value, $delimiter ?? null, $form_field );
+			foreach( $labelMappings as $k => $v ) {
+				$other_args["value_labels"][$k] = $v;
 			}
 		}
 
@@ -2198,6 +2192,18 @@ END;
 		}
 
 		return self::$mParsedValues[$value];
+	}
+
+	private function formFieldHasLabelMapping( $cur_value, $form_field ) {
+		if ( $cur_value !== '' && ( $form_field->hasFieldArg( 'mapping template' )
+			|| $form_field->hasFieldArg( 'mapping property' ) 
+			|| ( $form_field->hasFieldArg( 'mapping cargo table' ) &&
+			$form_field->hasFieldArg( 'mapping cargo field' ) ) 
+			|| $form_field->getUseDisplayTitle() )
+		) {
+			return true;
+		}
+		return false;
 	}
 
 }
