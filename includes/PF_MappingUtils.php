@@ -63,7 +63,7 @@ class PFMappingUtils {
 	 * @param array $arr
 	 * @return string
 	 */
-	private static function isIndexedArray( $arr ) {
+	public static function isIndexedArray( $arr ) {
 		if ( array_keys( $arr ) == range( 0, count( $arr ) - 1 ) ) {
 			return true;
 		} else {

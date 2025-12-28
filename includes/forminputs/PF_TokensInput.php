@@ -52,6 +52,14 @@ class PFTokensInput extends PFFormInput {
 		return [ 'String' ];
 	}
 
+	/**
+	 * @param string|array|null $cur_value
+	 * @param string $input_name
+	 * @param bool $is_mandatory
+	 * @param bool $is_disabled
+	 * @param array $other_args = []
+	 * @return string
+	 */
 	public static function getHTML( $cur_value, $input_name, $is_mandatory, $is_disabled, array $other_args ) {
 		global $wgPageFormsTabIndex, $wgPageFormsFieldNum, $wgPageFormsEDSettings;
 
@@ -99,10 +107,6 @@ class PFTokensInput extends PFFormInput {
 			[ $autocompleteSettings, $remoteDataType, $delimiter ] = PFValuesUtils::setAutocompleteValues( $other_args, true );
 		}
 
-		if ( is_array( $cur_value ) ) {
-			$cur_value = implode( $delimiter, $cur_value );
-		}
-
 		$className = 'pfTokens ';
 		$className .= ( $is_mandatory ) ? 'mandatoryField' : 'createboxInput';
 		if ( array_key_exists( 'class', $other_args ) ) {
@@ -119,13 +123,15 @@ class PFTokensInput extends PFFormInput {
 			$size = 100;
 		}
 
+		$cur_value_str = PFValuesUtils::getValuesString( $cur_value, $delimiter );
+
 		$inputAttrs = [
 			'id' => $input_id,
 			'name' => $input_name . '[]',
 			'class' => $className,
 			'style' => 'width:' . $size * 6 . 'px',
 			'multiple' => 'multiple',
-			'value' => $cur_value,
+			'value' => $cur_value_str,
 			'size' => 1,
 			'data-size' => $size * 6 . 'px',
 			'tabindex' => $wgPageFormsTabIndex,
@@ -154,31 +160,11 @@ class PFTokensInput extends PFFormInput {
 		}
 
 		// This code adds predefined tokens in the form of <options>
-
-		$cur_values = PFValuesUtils::getValuesArray( $cur_value, $delimiter );
-		$optionsText = '';
-
-		$possible_values = $other_args['possible_values'];
-		if ( $possible_values == null ) {
-			// If it's a Boolean property, display 'Yes' and 'No'
-			// as the values.
-			if ( array_key_exists( 'property_type', $other_args ) && $other_args['property_type'] == '_boo' ) {
-				$possible_values = [
-					PFUtils::getWordForYesOrNo( true ),
-					PFUtils::getWordForYesOrNo( false ),
-				];
-			} else {
-				$possible_values = [];
-			}
-		}
-
-		foreach ( $cur_values as $current_value ) {
-			if ( $current_value !== '' ) {
-				$optionAttrs = [ 'value' => $current_value, 'selected' => 'selected' ];
-				$optionLabel = $current_value;
-				$optionsText .= Html::element( 'option', $optionAttrs, $optionLabel );
-			}
-		}
+		$optionsText = self::createOptionsFromValues(
+			PFValuesUtils::getValuesArray( $cur_value, $delimiter ),
+			$other_args['possible_values'] ?? null,
+			$other_args
+		);
 
 		$text = "\n\t" . Html::rawElement( 'select', $inputAttrs, $optionsText ) . "\n";
 		$text .= Html::hidden( $input_name . '[is_list]', 1 );
@@ -190,7 +176,7 @@ class PFTokensInput extends PFFormInput {
 				$default_filename = '';
 			}
 
-			$text .= PFTextInput::uploadableHTML( $input_id, $delimiter, $default_filename, $cur_value, $other_args );
+			$text .= PFTextInput::uploadableHTML( $input_id, $delimiter, $default_filename, $cur_value_str, $other_args );
 		}
 
 		$spanID = 'span_' . $wgPageFormsFieldNum;
@@ -249,6 +235,101 @@ class PFTokensInput extends PFFormInput {
 		];
 
 		return $params;
+	}
+
+	/**
+	 * Convert current and possible values to HTML options
+	 * 
+	 * @param array $cur_values - see note below
+	 * @param array|null $possible_values
+	 * @param array $other_args
+	 * @return string
+	 */
+	private static function createOptionsFromValues(
+		array $cur_values,
+		mixed $possible_values,
+		array $other_args = []
+	): string {
+		$optionsText = "";
+
+		// $cur_values can be:
+		// (a) sequential array of values that are mapped to labels 
+		// in $other_args['value_labels']
+		// (b) pre-mapped associative array in which each key holds
+		// the value to be stored and each array value its matching label
+		// (c) indexed array without label mappings
+
+		$currIsIndexedArray = PFMappingUtils::isIndexedArray($cur_values);
+		foreach ( $cur_values as $key => $current_value ) {
+			if ( $current_value === '' ) {
+				continue;
+			}
+			$valId = $currIsIndexedArray ? $current_value : $key;
+			if ( array_key_exists( 'value_labels', $other_args )
+				&& is_array( $other_args['value_labels'] )
+				&& array_key_exists(
+					$valId,
+					$other_args['value_labels']
+				)
+			) {
+				// (a)
+				$optionLabel = $other_args['value_labels'][$valId];
+				$optionAttrs = [ 'value' => $valId ];
+			} else {
+				if ( !$currIsIndexedArray ) {
+					// (b) pre-mapped. May still be needed.
+					$optionAttrs = [ 'value' => $key ];
+				} else {
+					// (c) simple indexed array
+					$optionAttrs = [ 'value' => $current_value ];
+				}
+				$optionLabel = $current_value;
+			}
+			$optionAttrs['selected'] = 'selected';
+			$optionsText .= Html::element( 'option', $optionAttrs, $optionLabel );			
+		}
+
+		// Get possible values if not already set
+		if ( $possible_values === null ) {
+			if ( array_key_exists( 'property_type', $other_args ) && $other_args['property_type'] == '_boo' ) {
+				// If it's a Boolean property, display 'Yes' and 'No'
+				// as the values.
+				$possible_values = [
+					PFUtils::getWordForYesOrNo( true ),
+					PFUtils::getWordForYesOrNo( false ),
+				];
+			} else {
+				$possible_values = [];
+			}
+		}
+
+		// Add list of possible values but filter current values
+		$possIsIndexedArray = PFMappingUtils::isIndexedArray($possible_values);
+		foreach ( $possible_values as $key => $possible_value ) {
+			$possValId = $possIsIndexedArray ? $possible_value : $key;
+			if ( in_array(
+				$possValId,
+				$currIsIndexedArray ? $cur_values : array_keys($cur_values) )
+			) {
+				continue;
+			}
+
+			if ( array_key_exists( 'value_labels', $other_args )
+				&& is_array( $other_args['value_labels'] )
+				&& array_key_exists(
+					$possValId,
+					$other_args['value_labels']
+				)
+			) {
+				$optionLabel = $other_args['value_labels'][$possValId];
+			} else {
+				$optionLabel = $possible_value;
+			}
+			$optionAttrs = [ 'value' => $possIsIndexedArray ? $possible_value : $key ];
+			$optionsText .= Html::element( 'option', $optionAttrs, $optionLabel );
+		}
+
+		return $optionsText;
 	}
 
 	/**
