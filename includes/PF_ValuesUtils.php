@@ -883,6 +883,7 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 	/**
 	 * Helper function to get an array of values out of what 
 	 * may be an array or a delimited string.
+	 * Automatically trims array values.
 	 *
 	 * @param string[]|string|null $value
 	 * @param string $delimiter
@@ -890,7 +891,7 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 	 */
 	public static function getValuesArray( $value, $delimiter = null ) {
 		if ( is_array( $value ) ) {
-			return $value;
+			return array_map( 'trim', $value );
 		} elseif ( $value === null ) {
 			return [];
 		} elseif ( $delimiter !== null ) {
@@ -898,18 +899,21 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 			return array_map( 'trim', explode( $delimiter, $value ) );
 		} else {
 			// string, no delimiter
-			return [ $value ];
+			return [ trim($value) ];
 		}
 	}
 
-	/* Convenience method the other way around */
+	/**
+	 * Helper function - the converse of getValuesArray()
+	 * Automatically trims value.
+	 */
 	public static function getValuesString( mixed $value, $delimiter = null ) {
 		$res = "";
 		if ( is_string( $value ) ) {
 			$res = $value;
 		} elseif ( is_array( $value ) ) {
 			$res = $delimiter !== null
-				? implode( $delimiter, $value )
+				? implode( $delimiter, array_map( 'trim', $value ) )
 				: reset( $value );
 		}
 		return trim( $res );
