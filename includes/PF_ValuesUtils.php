@@ -586,6 +586,13 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		return self::getAllPagesForQuery( $rawQuery );
 	}
 
+	/**
+	 * Summary of getAllPagesForNamespace
+	 * @param mixed $namespaceStr
+	 * @param string|null $substring
+	 * @throws MWException
+	 * @return array (associative)
+	 */
 	public static function getAllPagesForNamespace( $namespaceStr, $substring = null ) {
 		global $wgLanguageCode, $wgPageFormsUseDisplayTitle;
 
@@ -649,10 +656,7 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		$conditions = [];
 		$conditions[] = implode( ' OR ', $namespaceConditions );
 		$tables = [ 'page' ];
-		$columns = [ 'page_title' ];
-		if ( count( $namespaceConditions ) > 1 ) {
-			$columns[] = 'page_namespace';
-		}
+		$columns = [ 'page_title', 'page_namespace' ];
 		if ( $wgPageFormsUseDisplayTitle ) {
 			$tables['pp_displaytitle'] = 'page_props';
 			$tables['pp_defaultsort'] = 'page_props';
@@ -696,21 +700,23 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		$pages = [];
 		$sortkeys = [];
 		while ( $row = $res->fetchRow() ) {
-			// If there's more than one namespace, include the
-			// namespace prefix in the results - otherwise, don't.
-			if ( array_key_exists( 'page_namespace', $row ) ) {
-				$actualTitle = Title::newFromText( $row['page_title'], $row['page_namespace'] );
-				$title = $actualTitle->getPrefixedText();
-			} else {
-				$title = str_replace( '_', ' ', $row['page_title'] );
-			}
+			$actualTitle = Title::newFromText( $row['page_title'], $row['page_namespace'] );
+			// full pagename
+			$title = $actualTitle->getPrefixedText();
+
 			if ( array_key_exists( 'pp_displaytitle_value', $row ) &&
 				( $row[ 'pp_displaytitle_value' ] ) !== null &&
 				trim( str_replace( '&#160;', '', strip_tags( $row[ 'pp_displaytitle_value' ] ) ) ) !== '' ) {
-				$pages[ $title . '@' ] = htmlspecialchars_decode( $row[ 'pp_displaytitle_value'], ENT_QUOTES );
+				$displaytitle = htmlspecialchars_decode( $row[ 'pp_displaytitle_value'], ENT_QUOTES );
+				$pages[ $title . '@' ] = $displaytitle;
 			} else {
-				$pages[ $title . '@' ] = $title;
+				// If there's more than one namespace, include the
+				// namespace prefix in the results - otherwise, don't.
+				$titleNoPrefix = str_replace( '_', ' ', $row['page_title'] );
+				$displaytitle = count( $namespaceConditions ) > 1 ? $title : $titleNoPrefix;
+				$pages[ $title . '@' ] = $displaytitle;
 			}
+
 			if ( array_key_exists( 'pp_defaultsort_value', $row ) &&
 				( $row[ 'pp_defaultsort_value' ] ) !== null ) {
 				$sortkeys[ $title ] = $row[ 'pp_defaultsort_value'];

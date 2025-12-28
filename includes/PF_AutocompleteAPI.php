@@ -105,10 +105,13 @@ class PFAutocompleteAPI extends ApiBase {
 		} elseif ( $cargo_table !== null && $cargo_field !== null ) {
 			$data = self::getAllValuesForCargoField( $cargo_table, $cargo_field, $cargo_where, $substr, $base_cargo_table, $base_cargo_field, $basevalue );
 		} elseif ( $namespace !== null ) {
-			$data = PFValuesUtils::getAllPagesForNamespace( $namespace, $substr );
-			$map = $wgPageFormsUseDisplayTitle;
-			if ( $map ) {
-				$data = PFMappingUtils::createDisplayTitleLabels( $data );
+			$map = true;
+			// getAllPagesForNamespace returns an associative array and may attempt to fetch a display title
+			$pages = PFValuesUtils::getAllPagesForNamespace( $namespace, $substr );
+			if ( $mappingType !== null && $mappingType !== 'displaytitle' ) {
+				$data = PFMappingUtils::getMappedValues( array_keys( $pages ), $mappingType, $mapArgs,$wgPageFormsUseDisplayTitle );
+			} else {
+				$data = $pages;
 			}
 		} elseif ( $external_url !== null ) {
 			$data = PFValuesUtils::getValuesFromExternalURL( $external_url, $substr );
