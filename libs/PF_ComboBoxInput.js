@@ -151,9 +151,9 @@
 		}
 
 		this.itemFound = false;
-		if (this.config.autocompletedatatype !== undefined) {
-			let data_source = this.config.autocompletesettings,
-				data_type = this.config.autocompletedatatype;
+		let data_type = this.config.autocompletedatatype;
+		if (data_type !== undefined && data_type !== "values") {
+			let data_source = this.config.autocompletesettings;
 			curValue = this.getValue(); // current label or substring being typed
 			const curHiddenVal = this.getHiddenInputValue(); //submitted
 

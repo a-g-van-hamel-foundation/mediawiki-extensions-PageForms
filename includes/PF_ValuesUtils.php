@@ -845,9 +845,11 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 	public static function getRemoteDataTypeAndPossiblySetAutocompleteValues( $autocompleteFieldType, $autocompletionSource, $field_args, $autocompleteSettings ) {
 		global $wgPageFormsMaxLocalAutocompleteValues, $wgPageFormsAutocompleteValues;
 
+		// 'reverselookup' may exist in $field_args if e.g.
+		// 'values' and 'mapping property' are used together
 		if ( $autocompleteFieldType == 'external_url'
 			|| $autocompleteFieldType == 'wikidata'
-			|| array_key_exists( 'reverselookup', $field_args )
+			|| ( array_key_exists( 'reverselookup', $field_args ) && $autocompleteFieldType != 'values' )
 		) {
 			// Autocompletion from URL is always done remotely.
 			return $autocompleteFieldType;
