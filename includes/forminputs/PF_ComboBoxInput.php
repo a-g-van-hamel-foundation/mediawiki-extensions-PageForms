@@ -36,22 +36,16 @@ class PFComboBoxInput extends PFFormInput {
 	 * @param array $other_args
 	 * @return string
 	 */
-	public static function getHTML( $cur_value, string $input_name, bool $is_mandatory, bool $is_disabled, array $other_args ) {
+	public static function getHTML(
+		mixed $cur_value,
+		string $input_name,
+		bool $is_mandatory,
+		bool $is_disabled,
+		array $other_args
+	) {
 		global $wgPageFormsTabIndex, $wgPageFormsFieldNum, $wgPageFormsEDSettings;
-		// $cur_value may be a simple string or an array,
-		// possibly even a mapped value-label array.
-		if ( is_array( $cur_value ) ) {
-			if ( count( $cur_value ) > 0 ) {
-				$cur_label = reset( $cur_value );
-				$cur_val_keys = array_keys( $cur_value );
-				$cur_value = reset( $cur_val_keys );
-			} else {
-				$cur_value = '';
-				$cur_label = '';
-			}
-		} else {
-			$cur_label = $cur_value;
-		}
+
+		[ $cur_value, $cur_label ] = self::getValueAndLabelFromCurrentValue( $cur_value, $other_args );
 
 		$className = 'pfComboBox';
 		if ( array_key_exists( 'class', $other_args ) ) {
@@ -213,6 +207,34 @@ class PFComboBoxInput extends PFFormInput {
 			$text .= $mapField;
 		}
 		return $text;
+	}
+
+	/**
+	 * $cur_value may be a simple string or an array,
+	 * possibly even a mapped value-label array.
+	 * Possibly more robust than it needs to be.
+	 */
+	private static function getValueAndLabelFromCurrentValue( mixed $cur_value, array $other_args ) {
+		if ( is_string( $cur_value ) ) {
+			$cur_value_str = $cur_value;
+		} elseif ( is_array($cur_value) && PFMappingUtils::isIndexedArray( $cur_value ) && count($cur_value) > 0 ) {
+			$cur_value_str = $cur_value[0];
+		} elseif ( is_array($cur_value) && count($cur_value) > 0 ) {
+			// pre-mapped
+			return [ array_keys($cur_value)[0], array_values($cur_value)[0] ];
+		} else {
+			return [ "", "" ];
+		}
+
+		if ( array_key_exists( 'value_labels', $other_args )
+			&& is_array( $other_args['value_labels'] )
+			&& array_key_exists( $cur_value_str, $other_args['value_labels'] )
+		) {
+			$label = $other_args['value_labels'][$cur_value_str];
+			return [ $cur_value_str, $label ];
+		} else {
+			return [ $cur_value_str, $cur_value_str ];
+		}
 	}
 
 	public static function getParameters() {
