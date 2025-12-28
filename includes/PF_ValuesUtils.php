@@ -565,6 +565,27 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		return $retrievedPages;
 	}
 
+	/**
+	 * Get values from property (data type 'Page' only) with
+	 * mapping property, using an inverse query.
+	 * Without $mappingProperty, expects that 'Display title of'
+	 * is available as a property.
+	 * 
+	 * @param string $propertyName
+	 * @param string $substring
+	 * @param string|null $mappingProperty
+	 * @return array (associative)
+	 */
+	public static function getAllPagesForPropertyRemotely(
+		string $propertyName,
+		string $substring = "+",
+		mixed $mappingProperty = null
+	) {
+		$mappingProperty = $mappingProperty !== null ? $mappingProperty : "Display title of";
+		$rawQuery = "[[-{$propertyName}::+]] [[{$mappingProperty}::~*{$substring}*]] OR [[-{$propertyName}::+]] [[{$mappingProperty}::like:*{$substring}*]]";
+		return self::getAllPagesForQuery( $rawQuery );
+	}
+
 	public static function getAllPagesForNamespace( $namespaceStr, $substring = null ) {
 		global $wgLanguageCode, $wgPageFormsUseDisplayTitle;
 

@@ -38,39 +38,69 @@ class PFAutocompleteAPI extends ApiBase {
 		$base_cargo_field = $params['base_cargo_field'];
 		$basevalue = $params['basevalue'];
 		// $limit = $params['limit'];
+		$mappingProperty = $params['mappingproperty'];
+		$mappingTemplate = $params['mappingtemplate'];
 
 		if ( $baseprop === null && $base_cargo_table === null && strlen( $substr ) == 0 ) {
 			$this->dieWithError( [ 'apierror-missingparam', 'substr' ], 'param_substr' );
 		}
 
+		// Set up mapping settings
 		global $wgPageFormsUseDisplayTitle;
+		// Whether $data is an associative array of valies
+		// mapped to labels (false by default):
 		$map = false;
+		$mapArgs = [];
+		if ( $mappingProperty !== null ) {
+			$mapArgs['mapping property'] = $mappingProperty;
+		} elseif ( $mappingTemplate !== null ) {
+			$mapArgs['mapping template'] = $mappingTemplate;
+		}
+		$mappingType = PFMappingUtils::getMappingType( $mapArgs, $wgPageFormsUseDisplayTitle );
+
 		if ( $baseprop !== null ) {
 			if ( $property !== null ) {
 				$data = $this->getAllValuesForProperty( $property, null, $baseprop, $basevalue );
 			}
 		} elseif ( $property !== null ) {
-			$data = $this->getAllValuesForProperty( $property, $substr );
+			if ( $mappingProperty === null ) {
+				$pages = $this->getAllValuesForProperty( $property, $substr );
+			} else {
+				// Only makes sense for properties of type 'Page'
+				$pages = PFValuesUtils::getAllPagesForPropertyRemotely( $property, $substr, $mappingProperty );
+			}
+			if ( $mappingType !== null  ) {
+				$map = true;
+				$data = PFMappingUtils::getMappedValues( $pages, $mappingType, $mapArgs, $wgPageFormsUseDisplayTitle );
+			} else {
+				$data = $pages;
+			}
 		} elseif ( $wikidata !== null ) {
 			$data = PFValuesUtils::getAllValuesFromWikidata( urlencode( $wikidata ), $substr );
 		} elseif ( $category !== null ) {
-			$data = PFValuesUtils::getAllPagesForCategory( $category, 3, $substr );
-			$map = $wgPageFormsUseDisplayTitle;
-			if ( $map ) {
-				$data = PFMappingUtils::createDisplayTitleLabels( $data );
+			$pages = PFValuesUtils::getAllPagesForCategory( $category, 3, $substr );
+			if ( $mappingType !== null ) {
+				$map = true;
+				$data = PFMappingUtils::getMappedValues( array_keys( $pages ), $mappingType, $mapArgs,$wgPageFormsUseDisplayTitle );
+			} else {
+				$data = $pages;
 			}
 		} elseif ( $concept !== null ) {
-			$data = PFValuesUtils::getAllPagesForConcept( $concept, $substr );
-			$map = $wgPageFormsUseDisplayTitle;
-			if ( $map ) {
-				$data = PFMappingUtils::createDisplayTitleLabels( $data );
+			$pages = PFValuesUtils::getAllPagesForConceptRemotely( $concept, $substr, $mappingProperty, $wgPageFormsUseDisplayTitle );
+			if ( $mappingType !== null ) {
+				$map = true;
+				$data = PFMappingUtils::getMappedValues( $pages, $mappingType, $mapArgs,$wgPageFormsUseDisplayTitle );
+			} else {
+				$data = $pages;
 			}
 		} elseif ( $query !== null ) {
 			$query = PFValuesUtils::processSemanticQuery( $query, $substr );
-			$data = PFValuesUtils::getAllPagesForQuery( $query );
-			$map = $wgPageFormsUseDisplayTitle;
-			if ( $map ) {
-				$data = PFMappingUtils::createDisplayTitleLabels( $data );
+			$pages = PFValuesUtils::getAllPagesForQuery( $query );
+			if ( $mappingType !== null ) {
+				$map = true;
+				$data = PFMappingUtils::getMappedValues( $pages, $mappingType, $mapArgs, $wgPageFormsUseDisplayTitle );
+			} else {
+				$data = $pages;
 			}
 		} elseif ( $cargo_table !== null && $cargo_field !== null ) {
 			$data = self::getAllValuesForCargoField( $cargo_table, $cargo_field, $cargo_where, $substr, $base_cargo_table, $base_cargo_field, $basevalue );
@@ -120,11 +150,12 @@ class PFAutocompleteAPI extends ApiBase {
 		// needed for the sorting.
 		$formattedData = [];
 		foreach ( $data as $key => $value ) {
-			if ( $map ) {
-				$formattedData[] = [ 'title' => $key, 'displaytitle' => $value ];
-			} else {
-				$formattedData[] = [ 'title' => $value ];
-			}
+			// Make sure there is always a 'displaytitle'
+			// even if it is identical to 'title'
+			$formattedData[] = [
+				'title' => $map ? $key : $value,
+				'displaytitle' => $value
+			];
 		}
 
 		// Set top-level elements.
@@ -157,6 +188,8 @@ class PFAutocompleteAPI extends ApiBase {
 			'base_cargo_table' => null,
 			'base_cargo_field' => null,
 			'basevalue' => null,
+			'mappingproperty' => null,
+			'mappingtemplate' => null
 		];
 	}
 
@@ -186,6 +219,7 @@ class PFAutocompleteAPI extends ApiBase {
 			'api.php?action=pfautocomplete&substr=te&property=Has_author',
 			'api.php?action=pfautocomplete&substr=te&category=Authors',
 			'api.php?action=pfautocomplete&semantic_query=((Category:Test)) ((MyProperty::Something))',
+			'api.php?action=pfautocomplete&substr=te&concept=Test&mappingproperty=Display_title_for'
 		];
 	}
 
