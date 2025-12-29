@@ -257,7 +257,14 @@
 				return markup;
 			}
 
-			const escapedMarkup = String(markup).replace(/[&<>"'\/\\]/g, (match) => replaceMap[match]);
+			let escapedMarkup = String(markup).replace(/[&<>"'\/\\]/g, (match) => replaceMap[match]);
+			// Allow minimal set of tags
+			const tagsAllowed = [ "i", "em", "strong", "b", "sup", "sub", "span" ];
+			tagsAllowed.forEach( (tag) => {
+				escapedMarkup = escapedMarkup
+					.replaceAll( `&lt;${tag}&gt;`, `<${tag}>` )
+					.replaceAll( `&lt;&#47;${tag}&gt;`, `</${tag}>` );
+			} );
 
 			const boldStart = String.fromCharCode(1);
 			const boldEnd = String.fromCharCode(2);
