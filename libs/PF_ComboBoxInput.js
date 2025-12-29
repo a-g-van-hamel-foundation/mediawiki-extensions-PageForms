@@ -152,7 +152,8 @@
 
 		this.itemFound = false;
 		let data_type = this.config.autocompletedatatype;
-		if (data_type !== undefined && data_type !== "values") {
+		if (data_type !== undefined) {
+			// Remote (API-based) autocompletion only
 			let data_source = this.config.autocompletesettings;
 			curValue = this.getValue(); // current label or substring being typed
 			const curHiddenVal = this.getHiddenInputValue(); //submitted
