@@ -5,6 +5,7 @@
  */
 
 use MediaWiki\Language\RawMessage;
+use SMW\DataValueFactory;
 
 /**
  * Adds and handles the 'pfautocomplete' action to the MediaWiki API.
@@ -63,17 +64,20 @@ class PFAutocompleteAPI extends ApiBase {
 				$data = $this->getAllValuesForProperty( $property, null, $baseprop, $basevalue );
 			}
 		} elseif ( $property !== null ) {
-			if ( $mappingProperty === null ) {
+			$propDataType = DataValueFactory::getInstance()->newPropertyValueByLabel( $property )->getPropertyTypeID();
+
+			// Disregard mapping type 'displaytitle' if the property 
+			// is not of type 'Page'
+			if ( $mappingProperty === null
+				|| ( $mappingType === "displaytitle" && $propDataType !== '_wpg' )
+			) {
 				$pages = $this->getAllValuesForProperty( $property, $substr );
-			} else {
-				// Only makes sense for properties of type 'Page'
-				$pages = PFValuesUtils::getAllPagesForPropertyRemotely( $property, $substr, $mappingProperty );
-			}
-			if ( $mappingType !== null  ) {
-				$map = true;
-				$data = PFMappingUtils::getMappedValues( $pages, $mappingType, $mapArgs, $wgPageFormsUseDisplayTitle );
-			} else {
 				$data = $pages;
+			} else {
+				// Inverse queries (makes sense for properties of type 'Page')
+				$map = true;
+				$pages = PFValuesUtils::getAllPagesForPropertyRemotely( $property, $substr, $mappingProperty );
+				$data = PFMappingUtils::getMappedValues( $pages, $mappingType, $mapArgs, $wgPageFormsUseDisplayTitle );
 			}
 		} elseif ( $wikidata !== null ) {
 			$data = PFValuesUtils::getAllValuesFromWikidata( urlencode( $wikidata ), $substr );
