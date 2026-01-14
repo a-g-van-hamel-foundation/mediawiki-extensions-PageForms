@@ -444,36 +444,8 @@ class PFFormField {
 
 		$f->setPossibleValues( $valuesSourceType, $valuesSource, $values, $cargo_table, $cargo_field, $cargo_where );
 
-		$mappingType = PFMappingUtils::getMappingType( $f->mFieldArgs, $f->mUseDisplayTitle );
-		if ( $mappingType !== null && !empty( $f->mPossibleValues ) ) {
-			// If we're going to be mapping values, we need to have
-			// the exact page name - and if these values come from
-			// "values from namespace", the namespace prefix was
-			// not included, so we need to add it now.
-			if ( $valuesSourceType == 'namespace' ) {
-				if ( $valuesSource != '' && $valuesSource != 'Main' ) {
-					foreach ( $f->mPossibleValues as $index => &$value ) {
-						$value = $valuesSource . ':' . $value;
-					}
-				}
-			}
-
-			$mappedValuesKey = json_encode( $f->mFieldArgs ) . $mappingType;
-			if ( array_key_exists( $mappedValuesKey, self::$mappedValuesCache ) ) {
-				$f->mPossibleValues = self::$mappedValuesCache[$mappedValuesKey];
-			} else {
-				$f->mPossibleValues = PFMappingUtils::getMappedValuesForInput( $f->mPossibleValues, $f->mFieldArgs );
-				self::$mappedValuesCache[$mappedValuesKey] = $f->mPossibleValues;
-			}
-
-			// If the number of possible values is greater than the max values to retrieve, set reverselookup to true.
-			// This enforces the use of the remote autocomplete feature for larger fields and prevents
-			// the form from loading slowly.
-			if ( count( $f->mPossibleValues ) >= PFValuesUtils::getMaxValuesToRetrieve() ) {
-				$f->setFieldArg( 'reverselookup', true );
-			}
-
-		}
+		// Map possible values if needed
+		self::maybeMapPossibleValuesAndSetReverseLookup( $f, $valuesSourceType, $valuesSource );
 
 		if ( $template_in_form->allowsMultiple() ) {
 			$f->mFieldArgs['part_of_multiple'] = true;
@@ -1074,4 +1046,41 @@ class PFFormField {
 
 		return $other_args;
 	}
+
+	private static function maybeMapPossibleValuesAndSetReverseLookup(
+		array &$f,
+		mixed $valuesSourceType,
+		mixed $valuesSource
+	) {
+		$mappingType = PFMappingUtils::getMappingType( $f->mFieldArgs, $f->mUseDisplayTitle );
+		if ( $mappingType !== null && !empty( $f->mPossibleValues ) ) {
+			// If we're going to be mapping values, we need to have
+			// the exact page name - and if these values come from
+			// "values from namespace", the namespace prefix was
+			// not included, so we need to add it now.
+			if ( $valuesSourceType == 'namespace' ) {
+				if ( $valuesSource != '' && $valuesSource != 'Main' ) {
+					foreach ( $f->mPossibleValues as $index => &$value ) {
+						$value = $valuesSource . ':' . $value;
+					}
+				}
+			}
+
+			$mappedValuesKey = json_encode( $f->mFieldArgs ) . $mappingType;
+			if ( array_key_exists( $mappedValuesKey, self::$mappedValuesCache ) ) {
+				$f->mPossibleValues = self::$mappedValuesCache[$mappedValuesKey];
+			} else {
+				$f->mPossibleValues = PFMappingUtils::getMappedValuesForInput( $f->mPossibleValues, $f->mFieldArgs );
+				self::$mappedValuesCache[$mappedValuesKey] = $f->mPossibleValues;
+			}
+
+			// If the number of possible values is greater than the max values to retrieve, set reverselookup to true.
+			// This enforces the use of the remote autocomplete feature for larger fields and prevents
+			// the form from loading slowly.
+			if ( count( $f->mPossibleValues ) >= PFValuesUtils::getMaxValuesToRetrieve() ) {
+				$f->setFieldArg( 'reverselookup', true );
+			}
+		}
+	}
+
 }
