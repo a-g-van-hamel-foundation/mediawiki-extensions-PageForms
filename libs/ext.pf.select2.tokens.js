@@ -227,7 +227,13 @@ const Sortable = require( 'ext.pageforms.sortable' );
 				const htmlElements = inputData.$selection[0].children[0].children;
 				term = htmlElements[htmlElements.length - 1].children[0].value;
 			}
-			return pf.select2.base.prototype.textHighlight( result.text, term );
+			var highlightedText = pf.select2.base.prototype.textHighlight( result.text, term );
+			if ( result.description == undefined ) {
+				return highlightedText;
+			} else {
+				// char code markers will be replaced later with HTML tags
+				return highlightedText + String.fromCharCode(182,182,182) + result.description + String.fromCharCode(182,182,182);
+			}
 		};
 		opts.language.searching = function() {
 			return mw.msg( "pf-autocomplete-searching" );
