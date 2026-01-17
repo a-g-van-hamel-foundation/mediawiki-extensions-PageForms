@@ -948,7 +948,14 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		return trim( $res );
 	}
 
-	public static function getValuesFromExternalURL( $external_url_alias, $substring ) {
+	/**
+	 * Get values from URL source (external or internal)
+	 * @return array|MediaWiki\Message\Message
+	 */
+	public static function getValuesFromExternalURL( 
+		string $external_url_alias,
+		string $substring
+	) {
 		global $wgPageFormsAutocompletionURLs;
 		if ( empty( $wgPageFormsAutocompletionURLs ) ) {
 			return wfMessage( 'pf-nocompletionurls' );
@@ -966,7 +973,7 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 			return wfMessage( 'pf-externalpageempty' );
 		}
 		$data = json_decode( $page_contents );
-		if ( empty( $data ) ) {
+		if ( empty( $data ) || !property_exists( $data, 'pfautocomplete' ) ) {
 			return wfMessage( 'pf-externalpagebadjson' );
 		}
 		$return_values = [];

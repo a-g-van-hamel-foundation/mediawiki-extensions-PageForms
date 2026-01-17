@@ -27,6 +27,8 @@ class PFMappingUtils {
 			$mappingType = 'mapping cargo field';
 		} elseif ( array_key_exists( 'mapping using translate', $args ) ) {
 			$mappingType = 'mapping using translate';
+		 } elseif( array_key_exists( "values from url", $args ) && array_key_exists( "mapping from url", $args ) ) {
+			$mappingType = 'mapping from url';
 		} elseif ( $useDisplayTitle ) {
 			$mappingType = 'displaytitle';
 		}
@@ -105,6 +107,19 @@ class PFMappingUtils {
 			case 'mapping using translate':
 				$translateMapping = $args[ 'mapping using translate' ];
 				$mappedValues = self::getValuesWithTranslateMapping( $values, $translateMapping );
+				break;
+			case 'mapping from url':
+				// Used only to map current values to labels
+				// if supported by the service
+				$mappedValues = [];
+				foreach( $values as $k => $v ) {
+					$urlResults = PFValuesUtils::getValuesFromExternalURL( $args["values from url"], $v );
+					if ( is_array( $urlResults ) || !empty($urlResults) || array_key_exists( $v, $urlResults ) ) {
+						$mappedValues[$v] = $urlResults[$v];
+					} else {
+						$mappedValues[$v] = $v;
+					}
+				}
 				break;
 			case 'displaytitle':
 				$isReverseLookup = ( array_key_exists( 'reverselookup', $args ) && ( $args['reverselookup'] == 'true' ) );
@@ -296,7 +311,9 @@ class PFMappingUtils {
 		$labels = $mappedValues = [];
         $valMax = PFValuesUtils::getMaxValuesToRetrieve();
 		//$form_submitted &&
-		$mode = count( $possibleValues ) >= $valMax ? 'remote' : 'local';
+		$mode = count( $possibleValues ) >= $valMax || ( array_key_exists( "values from url", $args ) && array_key_exists( "mapping from url", $args ) )
+			? 'remote'
+			: 'local';
 
 		if ( $mode === 'local' ) {
 			foreach ( $values as $value ) {

@@ -2195,12 +2195,8 @@ END;
 	}
 
 	private function formFieldHasLabelMapping( $cur_value, $form_field ) {
-		if ( $cur_value !== '' && ( $form_field->hasFieldArg( 'mapping template' )
-			|| $form_field->hasFieldArg( 'mapping property' ) 
-			|| ( $form_field->hasFieldArg( 'mapping cargo table' ) &&
-			$form_field->hasFieldArg( 'mapping cargo field' ) ) 
-			|| $form_field->getUseDisplayTitle() )
-		) {
+		$mappingType = PFMappingUtils::getMappingType( $form_field->getFieldArgs(), $form_field->getUseDisplayTitle() );
+		if ( $cur_value !== '' && $mappingType !== null ) {
 			return true;
 		}
 		return false;

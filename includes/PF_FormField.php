@@ -44,6 +44,8 @@ class PFFormField {
 	private $mDescriptionArgs;
 	private $mLabel;
 	private $mLabelMsg;
+	private static $mValuesSource = null;
+	private static $mValuesSourceType = null;
 	/**
 	 * somewhat of a hack - these two fields are for a field in a specific
 	 * representation of a form, not the form definition; ideally these
@@ -232,7 +234,7 @@ class PFFormField {
 		$cargo_table = $cargo_field = $cargo_where = null;
 		$show_on_select = [];
 		$fullFieldName = $template_name . '[' . $field_name . ']';
-		$values = $valuesSourceType = $valuesSource = null;
+		$values = null;
 
 		// We set "values from ..." params if there are corresponding
 		// values set in #template_params - this is a bit of a @hack,
@@ -324,27 +326,30 @@ class PFFormField {
 					// 'delimiter' has also been set.
 					$values = PFFormPrinter::getParsedValue( $parser, $sub_components[1] );
 				} elseif ( $sub_components[0] == 'values from property' ) {
-					$valuesSourceType = 'property';
-					$valuesSource = $sub_components[1];
+					self::$mValuesSourceType = 'property';
+					self::$mValuesSource = $sub_components[1];
 				} elseif ( $sub_components[0] == 'values from wikidata' ) {
-					$valuesSourceType = 'wikidata';
-					$valuesSource = urlencode( $sub_components[1] );
+					self::$mValuesSourceType = 'wikidata';
+					self::$mValuesSource = urlencode( $sub_components[1] );
+				} elseif( $sub_components[0] == 'values from url' ) {
+					self::$mValuesSourceType = 'external_url';
+					self::$mValuesSource = $sub_components[1];
 				} elseif ( $sub_components[0] == 'values from query' ) {
-					$valuesSourceType = 'query';
-					$valuesSource = $sub_components[1];
+					self::$mValuesSourceType = 'query';
+					self::$mValuesSource = $sub_components[1];
 				} elseif ( $sub_components[0] == 'values from category' ) {
-					$valuesSource = PFFormPrinter::getParsedValue( $parser, $sub_components[1] );
+					self::$mValuesSource = PFFormPrinter::getParsedValue( $parser, $sub_components[1] );
 					global $wgCapitalLinks;
 					if ( $wgCapitalLinks ) {
-						$valuesSource = ucfirst( $valuesSource );
+						self::$mValuesSource = ucfirst( self::$mValuesSource );
 					}
-					$valuesSourceType = 'category';
+					self::$mValuesSourceType = 'category';
 				} elseif ( $sub_components[0] == 'values from concept' ) {
-					$valuesSourceType = 'concept';
-					$valuesSource = PFFormPrinter::getParsedValue( $parser, $sub_components[1] );
+					self::$mValuesSourceType = 'concept';
+					self::$mValuesSource = PFFormPrinter::getParsedValue( $parser, $sub_components[1] );
 				} elseif ( $sub_components[0] == 'values from namespace' ) {
-					$valuesSourceType = 'namespace';
-					$valuesSource = PFFormPrinter::getParsedValue( $parser, $sub_components[1] );
+					self::$mValuesSourceType = 'namespace';
+					self::$mValuesSource = PFFormPrinter::getParsedValue( $parser, $sub_components[1] );
 				} elseif ( $sub_components[0] == 'values dependent on' ) {
 					global $wgPageFormsDependentFields;
 					$wgPageFormsDependentFields[] = [ $sub_components[1], $fullFieldName ];
@@ -392,7 +397,7 @@ class PFFormField {
 		}
 		// end for
 
-		if ( in_array( $valuesSourceType, [ 'category', 'namespace', 'concept' ] ) ) {
+		if ( in_array( self::$mValuesSourceType, [ 'category', 'namespace', 'concept' ] ) ) {
 			global $wgPageFormsUseDisplayTitle;
 			$f->mUseDisplayTitle = $wgPageFormsUseDisplayTitle;
 		} else {
@@ -442,10 +447,10 @@ class PFFormField {
 			}
 		}
 
-		$f->setPossibleValues( $valuesSourceType, $valuesSource, $values, $cargo_table, $cargo_field, $cargo_where );
+		$f->setPossibleValues(  $values, $cargo_table, $cargo_field, $cargo_where );
 
 		// Map possible values if needed
-		self::maybeMapPossibleValuesAndSetReverseLookup( $f, $valuesSourceType, $valuesSource );
+		self::maybeMapPossibleValuesAndSetReverseLookup( $f );
 
 		if ( $template_in_form->allowsMultiple() ) {
 			$f->mFieldArgs['part_of_multiple'] = true;
@@ -472,7 +477,7 @@ class PFFormField {
 		return $f;
 	}
 
-	private function setPossibleValues( $valuesSourceType, $valuesSource, $values, $cargo_table, $cargo_field, $cargo_where ) {
+	private function setPossibleValues( $values, $cargo_table, $cargo_field, $cargo_where ) {
 		// Set the $mPossibleValues field, using the following logic:
 		// - If "values" was set in the form definition, use that.
 		// - If any "values from ..." parameter was set, use that.
@@ -490,9 +495,9 @@ class PFFormField {
 			return;
 		}
 
-		if ( $valuesSourceType !== null && ( $valuesSourceType !== 'wikidata' || ( $this->mInputType !== 'combobox' &&
+		if ( self::$mValuesSourceType !== null && ( self::$mValuesSourceType !== 'wikidata' || ( $this->mInputType !== 'combobox' &&
 		$this->mInputType !== 'tokens' ) ) ) {
-			$this->mPossibleValues = PFValuesUtils::getAutocompleteValues( $valuesSource, $valuesSourceType );
+			$this->mPossibleValues = PFValuesUtils::getAutocompleteValues( self::$mValuesSource, self::$mValuesSourceType );
 			return;
 		}
 
@@ -1048,9 +1053,7 @@ class PFFormField {
 	}
 
 	private static function maybeMapPossibleValuesAndSetReverseLookup(
-		array &$f,
-		mixed $valuesSourceType,
-		mixed $valuesSource
+		PFFormField &$f
 	) {
 		$mappingType = PFMappingUtils::getMappingType( $f->mFieldArgs, $f->mUseDisplayTitle );
 		if ( $mappingType !== null && !empty( $f->mPossibleValues ) ) {
@@ -1058,10 +1061,10 @@ class PFFormField {
 			// the exact page name - and if these values come from
 			// "values from namespace", the namespace prefix was
 			// not included, so we need to add it now.
-			if ( $valuesSourceType == 'namespace' ) {
-				if ( $valuesSource != '' && $valuesSource != 'Main' ) {
+			if ( self::$mValuesSourceType == 'namespace' ) {
+				if ( self::$mValuesSource != '' && self::$mValuesSource != 'Main' ) {
 					foreach ( $f->mPossibleValues as $index => &$value ) {
-						$value = $valuesSource . ':' . $value;
+						$value = self::$mValuesSource . ':' . $value;
 					}
 				}
 			}
