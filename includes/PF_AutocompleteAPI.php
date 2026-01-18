@@ -118,8 +118,8 @@ class PFAutocompleteAPI extends ApiBase {
 				$data = $pages;
 			}
 		} elseif ( $external_url !== null ) {
-			$data = PFValuesUtils::getValuesFromExternalURL( $external_url, $substr );
-			$map = true;
+			$data = PFValuesUtils::getValuesFromExternalURL( $external_url, $substr, true );
+			//$map = true;
 		} else {
 			$data = [];
 		}
@@ -140,8 +140,6 @@ class PFAutocompleteAPI extends ApiBase {
 				$this->dieWithError( $data, $code );
 			}
 		}
-		// Sort the values by their lengths for better UX
-		$data = self::sortValuesByLength( $data );
 
 		// to prevent JS parsing problems, display should be the same
 		// even if there are no results
@@ -151,18 +149,22 @@ class PFAutocompleteAPI extends ApiBase {
 		}
 		*/
 
-		// Format data as the API requires it - in the case of "values
-		// from url", it's a little odd because we are re-adding the
-		// "title" key after having removed it, but the removal was
-		// needed for the sorting.
+		// Format data as the API requires it
 		$formattedData = [];
-		foreach ( $data as $key => $value ) {
-			// Make sure there is always a 'displaytitle'
-			// even if it is identical to 'title'
-			$formattedData[] = [
-				'title' => $map ? $key : $value,
-				'displaytitle' => $value
-			];
+		if ( $external_url !== null ) {
+			// diffferent format, may include 'description'
+			$formattedData = $data;
+		} else {
+			// Sort the values by their lengths for better UX
+			$data = self::sortValuesByLength( $data );
+			foreach ( $data as $key => $value ) {
+				// Make sure there is always a 'displaytitle'
+				// even if it is identical to 'title'
+				$formattedData[] = [
+					'title' => $map ? $key : $value,
+					'displaytitle' => $value
+				];
+			}
 		}
 
 		// Set top-level elements.

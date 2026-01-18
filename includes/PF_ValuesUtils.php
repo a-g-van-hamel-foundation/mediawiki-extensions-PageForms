@@ -952,9 +952,10 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 	 * Get values from URL source (external or internal)
 	 * @return array|MediaWiki\Message\Message
 	 */
-	public static function getValuesFromExternalURL( 
+	public static function getValuesFromExternalURL(
 		string $external_url_alias,
-		string $substring
+		string $substring,
+		bool $getFullResult = false
 	) {
 		global $wgPageFormsAutocompletionURLs;
 		if ( empty( $wgPageFormsAutocompletionURLs ) ) {
@@ -976,9 +977,25 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		if ( empty( $data ) || !property_exists( $data, 'pfautocomplete' ) ) {
 			return wfMessage( 'pf-externalpagebadjson' );
 		}
+
 		$return_values = [];
-		foreach ( $data->pfautocomplete as $val ) {
-			$return_values[$val->title] = $val->displaytitle ?? $val->title;
+		if ( !$getFullResult ) {
+			// array[value] => label
+			foreach ( $data->pfautocomplete as $val ) {
+				$return_values[$val->title] = $val->displaytitle ?? $val->title;
+			}
+		} else {
+			// Format that may include a description
+			foreach ( $data->pfautocomplete as $val ) {
+				$baseProps = [
+					"title" => $val->title,
+					"displaytitle" => $val->displaytitle ?? $val->title
+				];
+				if ( property_exists( $val, "description" ) && $val->description !== "" ) {
+					$baseProps["description"] = $val->description;
+				}
+				$return_values[] = $baseProps;
+			}
 		}
 		return $return_values;
 	}
