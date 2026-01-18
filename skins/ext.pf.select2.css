@@ -57,7 +57,7 @@
     text-align: justify;
     max-height: 300px;
 }
-.select2-highlighted .pf-result-description {
+.select2-results__option.select2-results__option--highlighted .pf-result-description {
     font-size: .8em;
     color: #eee;
 }

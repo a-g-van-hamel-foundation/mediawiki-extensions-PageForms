@@ -273,7 +273,7 @@
 				.replace(boldStart, '<span class="select2-match"><b>')
 				.replace(boldEnd, '</b></span>')
 				// replace start/end markers of description if any:
-				.replace(String.fromCharCode(182,182,182), '<div class="select2-description">')
+				.replace(String.fromCharCode(182,182,182), '<div class="pf-result-description">')
 				.replace(String.fromCharCode(182,182,182), '</div>')
 				+ '</span>';
 		},
