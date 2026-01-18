@@ -234,10 +234,11 @@
 								if (optionLabel == curValue) {
 									self.itemFound = true;
 								}
+								const highlighted = self.highlightText(optionLabel, Data[i].description ?? null);
 								const item = {
 									data: optionVal,
 									label: optionLabel,
-									highlighted: self.highlightText(optionLabel),
+									highlighted: highlighted,
 									disabled: false
 								};
 								values.push(item);
@@ -274,12 +275,13 @@
 								if ( data.title[i] == curValue ) {
 									self.itemFound = true;
 								}
+								const highlighted = self.highlightText(data.title[i], data.description[i] ?? null);
 								if (wgPageFormsAutocompleteOnAllChars) {
 									if (self.getConditionForAutocompleteOnAllChars(data.title[i], curValue)) {
 										values.push({
 											data: data.title[i],
 											label: data.title[i],
-											highlighted: self.highlightText(data.title[i])
+											highlighted: highlighted
 										});
 									}
 								} else {
@@ -287,7 +289,7 @@
 										values.push({
 											data: data.title[i],
 											label: data.title[i],
-											highlighted: self.highlightText(data.title[i])
+											highlighted: highlighted
 										});
 									}
 								}
@@ -528,7 +530,7 @@
 		return dependent_on_me;
 	};
 
-	pf.ComboBoxInput.prototype.highlightText = function(suggestion) {
+	pf.ComboBoxInput.prototype.highlightText = function(suggestion, description) {
 		const searchTerm = this.getValue();
 		const searchRegexp = new RegExp("(?![^&;]+;)(?!<[^<>]*)(" +
 			searchTerm.replace(/([\^\$\(\)\[\]\{\}\*\.\+\?\|\\])/gi, "\\$1") +
@@ -543,6 +545,9 @@
 				itemLabel.slice(loc + searchTerm.length);
 		} else {
 			t = itemLabel;
+		}
+		if (description !== undefined && description !== null) {
+			t += '<div class="pf-result-description">' + description + '</div>';
 		}
 		return new OO.ui.HtmlSnippet(t);
 	};
