@@ -114,7 +114,7 @@ class PFMappingUtils {
 				$mappedValues = [];
 				foreach( $values as $k => $v ) {
 					$urlResults = PFValuesUtils::getValuesFromExternalURL( $args["values from url"], $v );
-					if ( is_array( $urlResults ) || !empty($urlResults) || array_key_exists( $v, $urlResults ) ) {
+					if ( is_array( $urlResults ) && array_key_exists( $v, $urlResults ) ) {
 						$mappedValues[$v] = $urlResults[$v];
 					} else {
 						$mappedValues[$v] = $v;
