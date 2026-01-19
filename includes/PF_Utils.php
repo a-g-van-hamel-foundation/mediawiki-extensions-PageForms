@@ -12,6 +12,7 @@ use MediaWiki\Linker\Linker;
 use MediaWiki\Linker\LinkRenderer;
 use MediaWiki\Linker\LinkTarget;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Parser\ParserOptions;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Title\Title;
 use Wikimedia\Rdbms\DBConnRef;
@@ -39,6 +40,25 @@ class PFUtils {
 	 */
 	public static function getParser() {
 		return MediaWikiServices::getInstance()->getParser();
+	}
+
+	public static function parseWikitext( string $wikitext ) {
+		$parser = MediaWikiServices::getInstance()->getParserFactory()->create();
+		$parserOptions = ParserOptions::newFromAnon();
+		$parser->setOptions( $parserOptions );
+		//$parser->setOutputType( Parser::OT_WIKI );
+		// HACK: we just need a proper page title, not a special page
+		$titleObj = Title::newFromText( "API" );
+		$pageObj = MediaWikiServices::getInstance()->getWikiPageFactory()->newFromTitle( $titleObj );
+
+		// Initialise parser so we won't have error messages about
+		// typed properties being accessed too soon
+		// e.g. ".../mStripState must not be accessed before initialization"
+		$parser->parse( "", $pageObj, $parserOptions );
+		// P.S. ParserOutput::getText() is deprecated
+		// but its replacement is temporary or unstable
+
+		return $parser->recursiveTagParse( $wikitext, false );
 	}
 
 	/**

@@ -192,8 +192,7 @@ class PFMappingUtils {
 			// $value = $index;
 			// }
 			if ( $templateExists ) {
-				$label = trim( PFUtils::getParser()->recursiveTagParse( '{{' . $mappingTemplate .
-					'|' . $value . '}}' ) );
+				$label = trim( PFUtils::parseWikitext( '{{' . $mappingTemplate . '|' . $value . '}}' ) );
 				if ( $label == '' ) {
 					$res[$value] = $value;
 				} else {
