@@ -60,6 +60,23 @@ class PFComboBoxInput extends PFFormInput {
 		} else {
 			$size = 35;
 		}
+
+		/* Not currently implemented
+		$possible_values = $other_args['possible_values'];
+		if ( $possible_values == null ) {
+			// If it's a Boolean property, display 'Yes' and 'No'
+			// as the values.
+			if ( array_key_exists( 'property_type', $other_args ) && $other_args['property_type'] == '_boo' ) {
+				$possible_values = [
+					PFUtils::getWordForYesOrNo( true ),
+					PFUtils::getWordForYesOrNo( false ),
+				];
+			} else {
+				$possible_values = [];
+			}
+		}
+		*/
+
 		if ( array_key_exists( 'values from external data', $other_args ) ) {
 			$autocompleteSettings = 'external data';
 			$remoteDataType = null;
@@ -140,19 +157,6 @@ class PFComboBoxInput extends PFFormInput {
 
 		if ( !$is_mandatory || $cur_value === '' ) {
 			$innerDropdown .= "	<option value=\"\"></option>\n";
-		}
-		$possible_values = $other_args['possible_values'];
-		if ( $possible_values == null ) {
-			// If it's a Boolean property, display 'Yes' and 'No'
-			// as the values.
-			if ( array_key_exists( 'property_type', $other_args ) && $other_args['property_type'] == '_boo' ) {
-				$possible_values = [
-					PFUtils::getWordForYesOrNo( true ),
-					PFUtils::getWordForYesOrNo( false ),
-				];
-			} else {
-				$possible_values = [];
-			}
 		}
 
 		// Make sure that the current value always shows up when the

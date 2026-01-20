@@ -65,6 +65,25 @@ class PFTokensInput extends PFFormInput {
 
 		$other_args['is_list'] = true;
 
+		/* Not currently implemented
+		// $other_args['possible_values'] 
+		$possible_values = $other_args['possible_values'];
+		// Note that $other_args['possible_values'] are called
+		// through PFValuesUtils::setAutocompleteValues() below
+		if ( $possible_values == null ) {
+			// If it's a Boolean property, display 'Yes' and 'No'
+			// as the values.
+			if ( array_key_exists( 'property_type', $other_args ) && $other_args['property_type'] == '_boo' ) {
+				$possible_values = [
+					PFUtils::getWordForYesOrNo( true ),
+					PFUtils::getWordForYesOrNo( false ),
+				];
+			} else {
+				$possible_values = [];
+			}
+		}
+		*/
+
 		if ( array_key_exists( 'values from external data', $other_args ) ) {
 			$autocompleteSettings = 'external data';
 			$remoteDataType = null;
