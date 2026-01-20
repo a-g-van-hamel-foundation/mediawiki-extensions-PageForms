@@ -184,24 +184,22 @@ class PFMappingUtils {
 		string $mappingTemplate,
 		bool $useDisplayTitle = false
 	): array {
-		$title = Title::makeTitleSafe( NS_TEMPLATE, $mappingTemplate );
-		$templateExists = $title->exists();
+		$templateTitle = Title::makeTitleSafe( NS_TEMPLATE, $mappingTemplate );
+		$templateExists = $templateTitle->exists();
+
 		$res = [];
-		foreach ( $values as $index => $value ) {
-			// if ( $useDisplayTitle ) {
-			// $value = $index;
-			// }
-			if ( $templateExists ) {
-				$label = trim( PFUtils::parseWikitext( '{{' . $mappingTemplate . '|' . $value . '}}' ) );
-				if ( $label == '' ) {
-					$res[$value] = $value;
-				} else {
-					$res[$value] = $label;
-				}
-			} else {
+		if ( $templateExists ) {
+			$parser = PFUtils::getInitialisedParser();
+			foreach ( $values as $index => $value ) {
+				$label = $parser->recursiveTagParse( '{{' . $mappingTemplate . '|' . $value . '}}' );
+				$res[$value] = $label == '' ? $value : $label;
+			}
+		} else {
+			foreach ( $values as $index => $value ) {
 				$res[$value] = $value;
 			}
 		}
+
 		return $res;
 	}
 
