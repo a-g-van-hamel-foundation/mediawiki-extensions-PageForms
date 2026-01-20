@@ -191,7 +191,7 @@ class PFMappingUtils {
 		if ( $templateExists ) {
 			$parser = PFUtils::getInitialisedParser();
 			foreach ( $values as $index => $value ) {
-				$label = $parser->recursiveTagParse( '{{' . $mappingTemplate . '|' . $value . '}}' );
+				$label = trim( $parser->recursiveTagParse( '{{' . $mappingTemplate . '|' . $value . '}}' ) );
 				$res[$value] = $label == '' ? $value : $label;
 			}
 		} else {
