@@ -705,50 +705,6 @@ class PFFormField {
 		return null;
 	}
 
-	/**
-	 * Map a template field value into labels.
-	 * @param string $valueString
-	 * @param string $delimiter
-	 * @param bool $formSubmitted
-	 * @return string|string[]
-	 */
-	public function valueStringToLabels( $valueString, $delimiter, $formSubmitted ) {
-		if ( $valueString === null || trim( $valueString ) === '' ||
-			$this->mPossibleValues === null ) {
-			return $valueString;
-		}
-		if ( $delimiter !== null ) {
-			$values = array_map( 'trim', explode( $delimiter, $valueString ) );
-		} else {
-			$values = [ $valueString ];
-		}
-
-		$maxValues = PFValuesUtils::getMaxValuesToRetrieve();
-		if ( $formSubmitted && ( count( $this->mPossibleValues ) >= $maxValues ) ) {
-			// Remote autocompletion.
-			$mappedValues = PFMappingUtils::getMappedValuesForInput( $values, $this->getFieldArgs() );
-			return array_values( $mappedValues );
-		}
-
-		$labels = [];
-		foreach ( $values as $value ) {
-			if ( $value != '' ) {
-				if ( array_key_exists( $value, $this->mPossibleValues ) ) {
-					$labels[] = $this->mPossibleValues[$value];
-				} else {
-					$labels[] = $value;
-				}
-			}
-		}
-
-		// Most form input types expect a string, and not an array.
-		if ( count( $labels ) == 1 ) {
-			return $labels[0];
-		}
-
-		return $labels;
-	}
-
 	public function additionalHTMLForInput( $cur_value, $field_name, $template_name ) {
 		$text = '';
 

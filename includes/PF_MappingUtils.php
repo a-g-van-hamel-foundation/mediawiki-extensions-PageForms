@@ -265,19 +265,6 @@ class PFMappingUtils {
 	}
 
 	/**
-	 * @deprecated renamed
-	 */
-	public static function valueStringToLabels(
-		mixed $valueString,
-		?string $delimiter,
-		array $args = [],
-		bool $form_submitted = false,
-		bool $getMapped = false
-	): array {
-		self::mapValuesToLabels( $valueString, $delimiter, $args, $getMapped );
-	}
-
-	/**
 	 * Maps values to an array of labels or value-label pairs.
 	 * Can be used to map submitted to possible values.
 	 * Works with both local and remote autocompletion.
@@ -308,7 +295,8 @@ class PFMappingUtils {
 		$labels = $mappedValues = [];
         $valMax = PFValuesUtils::getMaxValuesToRetrieve();
 		//$form_submitted &&
-		$mode = count( $possibleValues ) >= $valMax || ( array_key_exists( "values from url", $args ) && array_key_exists( "mapping from url", $args ) )
+		$mode = count( $possibleValues ) >= $valMax
+			|| ( array_key_exists( "values from url", $args ) && array_key_exists( "mapping from url", $args ) )
 			? 'remote'
 			: 'local';
 
