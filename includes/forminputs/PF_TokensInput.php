@@ -168,8 +168,7 @@ class PFTokensInput extends PFFormInput {
 		// This code adds predefined tokens in the form of <options>
 		$optionsText = self::createOptionsFromValues(
 			PFValuesUtils::getValuesArray( $cur_value, $delimiter ),
-			$other_args['possible_values'] ?? null,
-			$other_args
+			$other_args['value_labels'] ?? null
 		);
 
 		$text = "\n\t" . Html::rawElement( 'select', $inputAttrs, $optionsText ) . "\n";
@@ -244,42 +243,34 @@ class PFTokensInput extends PFFormInput {
 	}
 
 	/**
-	 * Convert current and possible values to HTML options
+	 * Convert current values to HTML options
 	 * 
-	 * @param array $cur_values - see note below
-	 * @param array|null $possible_values
-	 * @param array $other_args
+	 * @param array $cur_values - current values (see note below)
+	 * @param ?array $valueLabels
 	 * @return string
 	 */
 	private static function createOptionsFromValues(
 		array $cur_values,
-		mixed $possible_values,
-		array $other_args = []
+		?array $valueLabels = null
 	): string {
 		$optionsText = "";
+		$currIsIndexedArray = PFMappingUtils::isIndexedArray($cur_values);
 
 		// $cur_values can be:
 		// (a) sequential array of values that are mapped to labels 
-		// in $other_args['value_labels']
+		// in $valueLabels
 		// (b) pre-mapped associative array in which each key holds
 		// the value to be stored and each array value its matching label
 		// (c) indexed array without label mappings
-
-		$currIsIndexedArray = PFMappingUtils::isIndexedArray($cur_values);
+		
 		foreach ( $cur_values as $key => $current_value ) {
 			if ( $current_value === '' ) {
 				continue;
 			}
 			$valId = $currIsIndexedArray ? $current_value : $key;
-			if ( array_key_exists( 'value_labels', $other_args )
-				&& is_array( $other_args['value_labels'] )
-				&& array_key_exists(
-					$valId,
-					$other_args['value_labels']
-				)
-			) {
+			if ( is_array( $valueLabels ) && array_key_exists( $valId, $valueLabels ) ) {
 				// (a)
-				$optionLabel = $other_args['value_labels'][$valId];
+				$optionLabel = $valueLabels[$valId];
 				$optionAttrs = [ 'value' => $valId ];
 			} else {
 				if ( !$currIsIndexedArray ) {
@@ -292,7 +283,7 @@ class PFTokensInput extends PFFormInput {
 				$optionLabel = $current_value;
 			}
 			$optionAttrs['selected'] = 'selected';
-			$optionsText .= Html::element( 'option', $optionAttrs, $optionLabel );			
+			$optionsText .= Html::element( 'option', $optionAttrs, $optionLabel );
 		}
 
 		return $optionsText;
