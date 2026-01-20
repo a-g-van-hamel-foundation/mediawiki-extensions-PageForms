@@ -295,46 +295,6 @@ class PFTokensInput extends PFFormInput {
 			$optionsText .= Html::element( 'option', $optionAttrs, $optionLabel );			
 		}
 
-		// Get possible values if not already set
-		if ( $possible_values === null ) {
-			if ( array_key_exists( 'property_type', $other_args ) && $other_args['property_type'] == '_boo' ) {
-				// If it's a Boolean property, display 'Yes' and 'No'
-				// as the values.
-				$possible_values = [
-					PFUtils::getWordForYesOrNo( true ),
-					PFUtils::getWordForYesOrNo( false ),
-				];
-			} else {
-				$possible_values = [];
-			}
-		}
-
-		// Add list of possible values but filter current values
-		$possIsIndexedArray = PFMappingUtils::isIndexedArray($possible_values);
-		foreach ( $possible_values as $key => $possible_value ) {
-			$possValId = $possIsIndexedArray ? $possible_value : $key;
-			if ( in_array(
-				$possValId,
-				$currIsIndexedArray ? $cur_values : array_keys($cur_values) )
-			) {
-				continue;
-			}
-
-			if ( array_key_exists( 'value_labels', $other_args )
-				&& is_array( $other_args['value_labels'] )
-				&& array_key_exists(
-					$possValId,
-					$other_args['value_labels']
-				)
-			) {
-				$optionLabel = $other_args['value_labels'][$possValId];
-			} else {
-				$optionLabel = $possible_value;
-			}
-			$optionAttrs = [ 'value' => $possIsIndexedArray ? $possible_value : $key ];
-			$optionsText .= Html::element( 'option', $optionAttrs, $optionLabel );
-		}
-
 		return $optionsText;
 	}
 
