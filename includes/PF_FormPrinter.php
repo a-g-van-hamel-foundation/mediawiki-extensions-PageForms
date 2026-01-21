@@ -1189,38 +1189,7 @@ END;
 
 					// Handle the free text field.
 					if ( $field_name == '#freetext#' ) {
-						// If there was no preloading, this will just be blank.
-						$preloaded_free_text = $cur_value;
-						// Add placeholders for the free text in both the form and
-						// the page, using <free_text> tags - once all the free text
-						// is known (at the end), it will get substituted in.
-						if ( $form_field->isHidden() ) {
-							$new_text = Html::hidden( 'pf_free_text', '!free_text!' );
-						} else {
-							$wgPageFormsTabIndex++;
-							$wgPageFormsFieldNum++;
-							if ( $cur_value === '' || $cur_value === null ) {
-								$default_value = '!free_text!';
-							} else {
-								$default_value = $cur_value;
-							}
-							$freeTextInput = new PFTextAreaInput( $input_number = null, $default_value, 'pf_free_text', ( $form_is_disabled || $form_field->isRestricted() ), $form_field->getFieldArgs() );
-							$freeTextInput->addJavaScript();
-							$new_text = $freeTextInput->getHtmlText();
-							if ( $form_field->hasFieldArg( 'edittools' ) ) {
-								// borrowed from EditPage::showEditTools()
-								$edittools_text = self::getParsedValue( $parser, wfMessage( 'edittools', [ 'content' ] )->text() );
-
-								$new_text .= <<<END
-		<div class="mw-editTools">
-		$edittools_text
-		</div>
-
-END;
-							}
-						}
-						$free_text_was_included = true;
-						$wiki_page->addFreeTextSection();
+						$this->handleFreeTextField( $cur_value, $form_field, $form_is_disabled, $new_text, $preloaded_free_text, $free_text_was_included, $wgPageFormsTabIndex, $wgPageFormsFieldNum, $wiki_page );
 					}
 
 					if ( $tif->getTemplateName() === '' || $field_name == '#freetext#' ) {
@@ -1988,6 +1957,57 @@ END;
 				$cur_value = '';
 			}
 		}
+	}
+
+	/**
+	 * Sets up variables for the Free Text field
+	 * by reference
+	 */
+	private function handleFreeTextField(
+		?string $cur_value,
+		$form_field,
+		bool $form_is_disabled,
+		&$new_text,
+		&$preloaded_free_text,
+		&$free_text_was_included,
+		&$wgPageFormsTabIndex,
+		&$wgPageFormsFieldNum,
+		PFWikiPage &$wiki_page
+	): void {
+		// If there was no preloading, this will just be blank.
+		$preloaded_free_text = $cur_value;
+
+		// Add placeholders for the free text in both the form and
+		// the page, using <free_text> tags - once all the free text
+		// is known (at the end), it will get substituted in.
+		if ( $form_field->isHidden() ) {
+			$new_text = Html::hidden( 'pf_free_text', '!free_text!' );
+		} else {
+			$wgPageFormsTabIndex++;
+			$wgPageFormsFieldNum++;
+			if ( $cur_value === '' || $cur_value === null ) {
+				$default_value = '!free_text!';
+			} else {
+				$default_value = $cur_value;
+			}
+
+			$freeTextInput = new PFTextAreaInput( $input_number = null, $default_value, 'pf_free_text', ( $form_is_disabled || $form_field->isRestricted() ), $form_field->getFieldArgs() );
+			$freeTextInput->addJavaScript();
+			$new_text = $freeTextInput->getHtmlText();
+
+			if ( $form_field->hasFieldArg( 'edittools' ) ) {
+				// borrowed from EditPage::showEditTools()
+				$edittools_text = self::getParsedValue( $parser, wfMessage( 'edittools', [ 'content' ] )->text() );
+				$new_text .= <<<END
+				<div class="mw-editTools">
+				$edittools_text
+				</div>
+				END;
+			}
+		}
+
+		$free_text_was_included = true;
+		$wiki_page->addFreeTextSection();
 	}
 
 	/**
