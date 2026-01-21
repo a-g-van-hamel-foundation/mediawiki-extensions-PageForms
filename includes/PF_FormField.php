@@ -570,7 +570,21 @@ class PFFormField {
 		}
 	}
 
-	function getCurrentValue( $template_instance_query_values, $form_submitted, $source_is_page, $all_instances_printed, &$val_modifier = null, $is_autoedit = false ) {
+	/**
+	 * Get current value for form field from request
+	 * (e.g. query form, autoedit) if any. For retrieval of
+	 * current values by other means, see PFFormPrinter.
+	 * Prepares current values for Translate extension.
+	 * Also potentially modifies val_modifier.
+	 */
+	function getCurrentValue(
+		array $template_instance_query_values,
+		bool $form_submitted,
+		bool $source_is_page,
+		bool $all_instances_printed,
+		?string &$val_modifier = null,
+		bool $is_autoedit = false
+	): string|null {
 		// Get the value from the request, if
 		// it's there, and if it's not an array.
 		$field_name = $this->template_field->getFieldName();
