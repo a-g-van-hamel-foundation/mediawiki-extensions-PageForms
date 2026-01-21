@@ -1232,18 +1232,12 @@ END;
 
 						$this->maybeSetCurrentToDefaultValues( $cur_value_in_template, $cur_value, $form_field, $tif,$source_is_page, $user );
 
-						$new_text = $this->formFieldHTML( $form_field, $cur_value );
-						$new_text .= $form_field->additionalHTMLForInput( $cur_value, $field_name, $tif->getTemplateName() );
-
-						if ( $new_text ) {
-							$wiki_page->addTemplateParam( $template_name, $tif->getInstanceNum(), $field_name, $cur_value_in_template );
-							$section = substr_replace( $section, $new_text, $brackets_loc, $brackets_end_loc + 3 - $brackets_loc );
-							$start_position = $brackets_loc + strlen( $new_text );
-						} else {
-							$start_position = $brackets_end_loc;
-						}
+						$this->addTemplateParametersAndMaybeChangeSection( $new_text, $section, $start_position, $brackets_loc, $brackets_end_loc, $cur_value, $cur_value_in_template, $field_name, $template_name, $wiki_page, $form_field, $tif );
 					}
 
+					// ...
+
+					// Maybe use words for boolean values in wiki language
 					if ( $tif->allowsMultiple() && !$tif->allInstancesPrinted() ) {
 						$wordForYes = PFUtils::getWordForYesOrNo( true );
 						if ( $form_field->getInputType() == 'checkbox' ) {
@@ -1996,6 +1990,36 @@ END;
 
 		$free_text_was_included = true;
 		$wiki_page->addFreeTextSection();
+	}
+
+	/**
+	 * Used for fields
+	 */
+	private function addTemplateParametersAndMaybeChangeSection(
+		string &$new_text,
+		?string &$section,
+		int &$start_position,
+		int $brackets_loc,
+		int $brackets_end_loc,
+		?string $cur_value,
+		?string $cur_value_in_template,
+		string $field_name,
+		string $template_name,
+		PFWikiPage $wiki_page,
+		PFFormField $form_field,
+		PFTemplateInForm $tif
+	) {
+		$new_text = $this->formFieldHTML( $form_field, $cur_value );
+		$new_text .= $form_field->additionalHTMLForInput( $cur_value, $field_name, $tif->getTemplateName() );
+
+		if ( $new_text ) {
+			$wiki_page->addTemplateParam( $template_name, $tif->getInstanceNum(), $field_name, $cur_value_in_template );
+
+			$section = substr_replace( $section, $new_text, $brackets_loc, $brackets_end_loc + 3 - $brackets_loc );
+			$start_position = $brackets_loc + strlen( $new_text );
+		} else {
+			$start_position = $brackets_end_loc;
+		}
 	}
 
 	/**
