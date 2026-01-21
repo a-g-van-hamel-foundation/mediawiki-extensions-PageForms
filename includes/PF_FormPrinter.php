@@ -1195,37 +1195,7 @@ END;
 					if ( $tif->getTemplateName() === '' || $field_name == '#freetext#' ) {
 						$section = substr_replace( $section, $new_text, $brackets_loc, $brackets_end_loc + 3 - $brackets_loc );
 					} else {
-						if ( is_array( $cur_value ) ) {
-							// @TODO - is this code ever called?
-							$delimiter = $form_field->getFieldArg( 'is_list' );
-							// first, check if it's a list
-							if ( array_key_exists( 'is_list', $cur_value ) &&
-									$cur_value['is_list'] == true ) {
-								$cur_value_in_template = "";
-								foreach ( $cur_value as $key => $val ) {
-									if ( $key !== "is_list" ) {
-										if ( $cur_value_in_template != "" ) {
-											$cur_value_in_template .= $delimiter . " ";
-										}
-										$cur_value_in_template .= $val;
-									}
-								}
-							} else {
-								// If it's not a list, it's probably from a checkbox or date input -
-								// convert the values into a string.
-								$cur_value_in_template = self::getStringFromPassedInArray( $cur_value, $delimiter );
-							}
-						} elseif ( $form_field->holdsTemplate() ) {
-							// If this field holds an embedded template,
-							// and the value is not an array, it means
-							// there are no instances of the template -
-							// set the value to null to avoid getting
-							// whatever is currently on the page.
-							$cur_value_in_template = null;
-						} else {
-							// value is not an array.
-							$cur_value_in_template = $cur_value;
-						}
+						$cur_value_in_template = $this->createCurValueInTemplate( $cur_value,$delimiter, $form_field );
 
 						// If we're creating the page name from a formula based on
 						// form values, see if the current input is part of that formula,
@@ -1241,18 +1211,11 @@ END;
 							// with spaces.
 							$generated_page_name = str_replace( '_', ' ', $generated_page_name );
 						}
-						if ( defined( 'CARGO_VERSION' ) && $form_field->hasFieldArg( 'mapping cargo table' ) &&
-							$form_field->hasFieldArg( 'mapping cargo field' ) && $form_field->hasFieldArg( 'mapping cargo value field' ) ) {
-							$mappingCargoTable = $form_field->getFieldArg( 'mapping cargo table' );
-							$mappingCargoField = $form_field->getFieldArg( 'mapping cargo field' );
-							$mappingCargoValueField = $form_field->getFieldArg( 'mapping cargo value field' );
-							if ( !$form_submitted && $cur_value !== null && $cur_value !== '' ) {
-								$cur_value = $this->getCargoBasedMapping( $cur_value, $mappingCargoTable, $mappingCargoField, $mappingCargoValueField, $form_field );
-							}
-							if ( $form_submitted && $cur_value_in_template !== null && $cur_value_in_template !== '' ) {
-								$cur_value_in_template = $this->getCargoBasedMapping( $cur_value_in_template, $mappingCargoTable, $mappingCargoValueField, $mappingCargoField, $form_field );
-							}
-						}
+
+						// Mapping
+
+						$this->maybeMapCurrentValueForCargo( $cur_value, $cur_value_in_template, $form_field, $form_submitted );
+						
 						if ( $this->formFieldHasLabelMapping( $cur_value, $form_field ) ) {
 							// Leave $cur_value as is - value only
 							// Labels mapped to values will be added to $other_args["value_labels"]
@@ -2039,6 +2002,33 @@ END;
 	}
 
 	/**
+	 * If Cargo is used with Cargo-based mapping, applies
+	 * label mapping to $cur_value and $cur_value_in_template
+	 */
+	private function maybeMapCurrentValueForCargo(
+		&$cur_value,
+		&$cur_value_in_template,
+		PFFormField $form_field,
+		bool $form_submitted,
+	): void {
+		if ( defined( 'CARGO_VERSION' ) && $form_field->hasFieldArg( 'mapping cargo table' ) &&
+			$form_field->hasFieldArg( 'mapping cargo field' ) && $form_field->hasFieldArg( 'mapping cargo value field' )
+		) {
+			$mappingCargoTable = $form_field->getFieldArg( 'mapping cargo table' );
+			$mappingCargoField = $form_field->getFieldArg( 'mapping cargo field' );
+			$mappingCargoValueField = $form_field->getFieldArg( 'mapping cargo value field' );
+
+			if ( !$form_submitted && $cur_value !== null && $cur_value !== '' ) {
+				$cur_value = $this->getCargoBasedMapping( $cur_value, $mappingCargoTable, $mappingCargoField, $mappingCargoValueField, $form_field );
+			}
+
+			if ( $form_submitted && $cur_value_in_template !== null && $cur_value_in_template !== '' ) {
+				$cur_value_in_template = $this->getCargoBasedMapping( $cur_value_in_template, $mappingCargoTable, $mappingCargoValueField, $mappingCargoField, $form_field );
+			}
+		}
+	}
+
+	/**
 	 * Cargo based mapping compatible with autocompletion
 	 * @param string $currentValue
 	 * @param string $mappingCargoTable
@@ -2249,6 +2239,44 @@ END;
 			return true;
 		}
 		return false;
+	}
+
+	private function createCurValueInTemplate(
+		$cur_value,
+		&$delimiter,
+		$form_field
+	) {
+		if ( is_array( $cur_value ) ) {
+			// @TODO - is this code ever called?
+			$delimiter = $form_field->getFieldArg( 'is_list' );
+			// first, check if it's a list
+			if ( array_key_exists( 'is_list', $cur_value ) && $cur_value['is_list'] == true ) {
+				$cur_value_in_template = "";
+				foreach ( $cur_value as $key => $val ) {
+					if ( $key !== "is_list" ) {
+						if ( $cur_value_in_template != "" ) {
+							$cur_value_in_template .= $delimiter . " ";
+						}
+						$cur_value_in_template .= $val;
+					}
+				}
+			} else {
+				// If it's not a list, it's probably from a checkbox or date input -
+				// convert the values into a string.
+				$cur_value_in_template = self::getStringFromPassedInArray( $cur_value, $delimiter );
+			}
+		} elseif ( $form_field->holdsTemplate() ) {
+			// If this field holds an embedded template,
+			// and the value is not an array, it means
+			// there are no instances of the template -
+			// set the value to null to avoid getting
+			// whatever is currently on the page.
+			$cur_value_in_template = null;
+		} else {
+			// value is not an array.
+			$cur_value_in_template = $cur_value;
+		}
+		return $cur_value_in_template;
 	}
 
 }
