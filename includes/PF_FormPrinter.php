@@ -1197,25 +1197,14 @@ END;
 					} else {
 						$cur_value_in_template = $this->createCurValueInTemplate( $cur_value,$delimiter, $form_field );
 
-						// If we're creating the page name from a formula based on
-						// form values, see if the current input is part of that formula,
-						// and if so, substitute in the actual value.
 						if ( $form_submitted && $generated_page_name !== '' ) {
-							// This line appears to be unnecessary.
-							// $generated_page_name = str_replace('.', '_', $generated_page_name);
-							$generated_page_name = str_replace( ' ', '_', $generated_page_name );
-							$escaped_input_name = str_replace( ' ', '_', $form_field->getInputName() );
-							$generated_page_name = str_ireplace( "<$escaped_input_name>",
-								$cur_value_in_template ?? '', $generated_page_name );
-							// Once the substitution is done, replace underlines back
-							// with spaces.
-							$generated_page_name = str_replace( '_', ' ', $generated_page_name );
+							$generated_page_name = $this->makeGeneratedPageNameFromFormula( $generated_page_name, $form_field->getInputName(), $cur_value_in_template );
 						}
 
 						// Mapping
 
 						$this->maybeMapCurrentValueForCargo( $cur_value, $cur_value_in_template, $form_field, $form_submitted );
-						
+
 						if ( $this->formFieldHasLabelMapping( $cur_value, $form_field ) ) {
 							// Leave $cur_value as is - value only
 							// Labels mapped to values will be added to $other_args["value_labels"]
@@ -1232,6 +1221,7 @@ END;
 							$this->createFormFieldTranslateTag( $template, $tif, $form_field, $cur_value );
 							$hookContainer->run( 'PageForms::CreateFormField', [ &$form_field, &$cur_value, false ] );
 						}
+
 						// if this is not part of a 'multiple' template, increment the
 						// global tab index (used for correct tabbing)
 						if ( !$form_field->hasFieldArg( 'part_of_multiple' ) ) {
@@ -1239,63 +1229,8 @@ END;
 						}
 						// increment the global field number regardless
 						$wgPageFormsFieldNum++;
-						if ( $source_is_page && !$tif->allInstancesPrinted() ) {
-							// If the source is a page, don't use the default
-							// values - except for newly-added instances of a
-							// multiple-instance template.
-						// If the field is a date field, and its default value was set
-						// to 'now', and it has no current value, set $cur_value to be
-						// the current date.
-						} elseif ( $form_field->getDefaultValue() == 'now' &&
-								// if the date is hidden, cur_value will already be set
-								// to the default value
-								( $cur_value == '' || $cur_value == 'now' ) ) {
-							$input_type = $form_field->getInputType();
-							// We don't handle the 'datepicker' and 'datetimepicker'
-							// input types here, because they have their own
-							// formatting; instead, they handle 'now' themselves.
-							if ( $input_type == 'date' || $input_type == 'datetime' ||
-									$input_type == 'year' ||
-									( $input_type == '' && $form_field->getTemplateField()->getPropertyType() == '_dat' ) ) {
-								$cur_value_in_template = self::getStringForCurrentTime( $input_type == 'datetime', $form_field->hasFieldArg( 'include timezone' ) );
-							}
-						// If the field is a text field, and its default value was set
-						// to 'current user', and it has no current value, set $cur_value
-						// to be the current user.
-						} elseif ( $form_field->getDefaultValue() == 'current user' &&
-							// if the input is hidden, cur_value will already be set
-							// to the default value
-							( $cur_value === '' || $cur_value == 'current user' )
-						) {
-							$cur_value_in_template = $user->isRegistered() ? $user->getName() : '';
-							$cur_value = $cur_value_in_template;
-						// UUID is the only default value (so far) that can also be set
-						// by the JavaScript, for multiple-instance templates - for the
-						// other default values, there's no real need to have a
-						// different value for each instance.
-						} elseif ( $form_field->getDefaultValue() == 'uuid' &&
-							( $cur_value == '' || $cur_value == 'uuid' )
-						) {
-							if ( $tif->allowsMultiple() ) {
-								// Will be set by the JS.
-								$form_field->setFieldArg( 'class', 'new-uuid' );
-							} else {
-								$cur_value = $cur_value_in_template = self::generateUUID();
-							}
-						}
 
-						// If all instances have been
-						// printed, that means we're
-						// now printing a "starter"
-						// div - set the current value
-						// to null, unless it's the
-						// default value.
-						// (Ideally it wouldn't get
-						// set at all, but that seems a
-						// little harder.)
-						if ( $tif->allInstancesPrinted() && $form_field->getDefaultValue() == null ) {
-							$cur_value = null;
-						}
+						$this->maybeSetCurrentToDefaultValues( $cur_value_in_template, $cur_value, $form_field, $tif,$source_is_page, $user );
 
 						$new_text = $this->formFieldHTML( $form_field, $cur_value );
 						$new_text .= $form_field->additionalHTMLForInput( $cur_value, $field_name, $tif->getTemplateName() );
@@ -1921,6 +1856,96 @@ END;
 			}
 		}
 	}
+
+	private function maybeSetCurrentToDefaultValues(
+		&$cur_value_in_template,
+		&$cur_value,
+		PFFormField $form_field,
+		PFTemplateInForm $tif,
+		bool $source_is_page,
+		User $user
+	) {
+		if ( $source_is_page && !$tif->allInstancesPrinted() ) {
+			// If the source is a page, don't use the default
+			// values - except for newly-added instances of a
+			// multiple-instance template.
+			// If the field is a date field, and its default value was set
+			// to 'now', and it has no current value, set $cur_value to be
+			// the current date.
+		} elseif ( $form_field->getDefaultValue() == 'now' &&
+			// if the date is hidden, cur_value will already be set
+			// to the default value
+			( $cur_value == '' || $cur_value == 'now' )
+		) {
+			$input_type = $form_field->getInputType();
+			// We don't handle the 'datepicker' and 'datetimepicker'
+			// input types here, because they have their own
+			// formatting; instead, they handle 'now' themselves.
+			if ( $input_type == 'date' || $input_type == 'datetime' ||
+				$input_type == 'year' ||
+				( $input_type == '' && $form_field->getTemplateField()->getPropertyType() == '_dat' )
+			) {
+				$cur_value_in_template = self::getStringForCurrentTime( $input_type == 'datetime', $form_field->hasFieldArg( 'include timezone' ) );
+			}
+
+			// If the field is a text field, and its default value was set
+			// to 'current user', and it has no current value, set $cur_value
+			// to be the current user.
+		} elseif ( $form_field->getDefaultValue() == 'current user' &&
+			// if the input is hidden, cur_value will already be set
+			// to the default value
+			( $cur_value === '' || $cur_value == 'current user' )
+		) {
+			$cur_value_in_template = $user->isRegistered() ? $user->getName() : '';
+			$cur_value = $cur_value_in_template;
+
+			// UUID is the only default value (so far) that can also be set
+			// by the JavaScript, for multiple-instance templates - for the
+			// other default values, there's no real need to have a
+			// different value for each instance.
+		} elseif ( $form_field->getDefaultValue() == 'uuid' &&
+			( $cur_value == '' || $cur_value == 'uuid' )
+		) {
+			if ( $tif->allowsMultiple() ) {
+				// Will be set by the JS.
+				$form_field->setFieldArg( 'class', 'new-uuid' );
+			} else {
+				$cur_value = $cur_value_in_template = self::generateUUID();
+			}
+		}
+
+		// If all instances have been printed, that means we're
+		// now printing a "starter" div - set the current value
+		// to null, unless it's the default value.
+		// (Ideally it wouldn't get set at all, but that seems a
+		// little harder.)
+		if ( $tif->allInstancesPrinted() && $form_field->getDefaultValue() == null ) {
+			$cur_value = null;
+		}
+
+	}
+
+	/**
+	 * If we're creating the page name from a formula based on
+	 * form values, see if the current input is part of that formula,
+	 * and if so, substitute in the actual values.
+	 */
+	private function makeGeneratedPageNameFromFormula(
+		string $generated_page_name,
+		string $inputName,
+		?string $cur_value_in_template
+	) {
+		// This line appears to be unnecessary.
+		// $generated_page_name = str_replace('.', '_', $generated_page_name);
+		$generated_page_name = str_replace( ' ', '_', $generated_page_name );
+		$escaped_input_name = str_replace( ' ', '_', $inputName );
+		$generated_page_name = str_ireplace( "<$escaped_input_name>",$cur_value_in_template ?? '', $generated_page_name );
+		// Once the substitution is done, replace underlines back
+		// with spaces.
+		$generated_page_name = str_replace( '_', ' ', $generated_page_name );
+		return $generated_page_name;
+	}
+
 
 	/**
 	 * Sets up variables for the Free Text field
