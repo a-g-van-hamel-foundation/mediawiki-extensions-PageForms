@@ -1182,70 +1182,10 @@ END;
 						$placeholderFields[] = self::placeholderFormat( $tif->getTemplateName(), $field_name );
 					}
 
-					if ( $val_modifier !== null ) {
-						$page_value = $tif->getValuesFromPage()[$field_name];
-					}
-					if ( $val_modifier === '+' ) {
-						if ( preg_match( "#(,|\^)\s*$cur_value\s*(,|\$)#", $page_value ) === 0 ) {
-							if ( trim( $page_value ) !== '' ) {
-								// if page_value is empty, simply don't do anything, because then cur_value
-								// is already the value it has to be (no delimiter needed).
-								$cur_value = $page_value . $delimiter . $cur_value;
-							}
-						} else {
-							$cur_value = $page_value;
-						}
-						$tif->changeFieldValues( $field_name, $cur_value, $delimiter );
-					} elseif ( $val_modifier === '-' ) {
-						// get an array of elements to remove:
-						$remove = array_map( 'trim', explode( ",", $cur_value ) );
-						// process the current value:
-						$val_array = array_map( 'trim', explode( $delimiter, $page_value ) );
-						// remove element(s) from list
-						foreach ( $remove as $rmv ) {
-							// go through each element and remove match(es)
-							$key = array_search( $rmv, $val_array );
-							if ( $key !== false ) {
-								unset( $val_array[$key] );
-							}
-						}
-						// Convert modified array back to a comma-separated string value and modify
-						$cur_value = implode( ",", $val_array );
-						if ( $cur_value === '' ) {
-							// HACK: setting an empty string prevents anything from happening at all.
-							// set a dummy string that evaluates to an empty string
-							$cur_value = '{{subst:lc: }}';
-						}
-						$tif->changeFieldValues( $field_name, $cur_value, $delimiter );
-					}
-					// If the user is editing a page, and that page contains a call to
-					// the template being processed, get the current field's value
-					// from the template call.
-					// Do the same thing if it's a new page but there's a "preload" -
-					// unless a value for this field was already set in the query string.
-					if ( ( $page_exists || $cur_value == '' ) && ( $tif->getFullTextInPage() != '' ) && !$form_submitted && !$is_autoedit ) {
-						if ( $tif->hasValueFromPageForField( $field_name ) ) {
-							// Get value, and remove it,
-							// so that at the end we
-							// can have a list of all
-							// the fields that weren't
-							// handled by the form.
-							$cur_value = $tif->getAndRemoveValueFromPageForField( $field_name );
+					$cur_value = $this->setCurrentValueAndChangeFieldValues( $cur_value, $delimiter, $tif, $field_name, $val_modifier );
 
-							// If the field is a placeholder, the contents of this template
-							// parameter should be treated as elements parsed by an another
-							// multiple template form.
-							// By putting that at the very end of the parsed string, we'll
-							// have it processed as a regular multiple template form.
-							if ( $form_field->holdsTemplate() ) {
-								$existing_page_content .= $cur_value;
-							}
-						} elseif ( isset( $cur_value ) && !empty( $cur_value ) ) {
-							// Do nothing.
-						} else {
-							$cur_value = '';
-						}
-					}
+					// May be used for template calls and preloads
+					$this->maybeChangeCurrentValue( $cur_value, $field_name, $tif, $form_field, $page_exists, $form_submitted, $is_autoedit, $existing_page_content );
 
 					// Handle the free text field.
 					if ( $field_name == '#freetext#' ) {
@@ -1959,6 +1899,95 @@ END;
 		}
 
 		return [ $form_text, $page_text, $form_page_title, $generated_page_name ];
+	}
+
+	private function setCurrentValueAndChangeFieldValues(
+		?string $cur_value,
+		string $delimiter,
+		PFTemplateInForm &$tif,
+		string $field_name,
+		?string $val_modifier
+	) {
+		// Page value
+		if ( $val_modifier !== null ) {
+			$page_value = $tif->getValuesFromPage()[$field_name];
+			// @todo - ?trim( $page_value )
+		} else {
+			$page_value = "";
+		}
+
+		if ( $val_modifier === '+' ) {
+			if ( preg_match( "#(,|\^)\s*$cur_value\s*(,|\$)#", $page_value ) === 0 ) {
+				if ( trim( $page_value ) !== '' ) {
+					// if page_value is empty, simply don't do anything, because then cur_value
+					// is already the value it has to be (no delimiter needed).
+					$cur_value = $page_value . $delimiter . $cur_value;
+				}
+			} else {
+				$cur_value = $page_value;
+			}
+		} elseif ( $val_modifier === '-' ) {
+			// get an array of elements to remove:
+			$remove = array_map( 'trim', explode( ",", $cur_value ) );
+			// process the current value:
+			$val_array = array_map( 'trim', explode( $delimiter, $page_value ) );
+			// remove element(s) from list
+			foreach ( $remove as $rmv ) {
+				// go through each element and remove match(es)
+				$key = array_search( $rmv, $val_array );
+				if ( $key !== false ) {
+					unset( $val_array[$key] );
+				}
+			}
+			// Convert modified array back to a comma-separated string value and modify
+			$cur_value = implode( ",", $val_array );
+			if ( $cur_value === '' ) {
+				// HACK: setting an empty string prevents anything from happening at all.
+				// set a dummy string that evaluates to an empty string
+				$cur_value = '{{subst:lc: }}';
+			}
+		}
+
+		$tif->changeFieldValues( $field_name, $cur_value, $delimiter );
+		return $cur_value;
+	}
+
+	private function maybeChangeCurrentValue(
+		?string &$cur_value,
+		string $field_name,
+		PFTemplateInForm $tif,
+		PFFormField $form_field,
+		bool $page_exists,
+		bool $form_submitted,
+		bool $is_autoedit,
+		&$existing_page_content
+	) {
+		// If the user is editing a page, and that page contains a call to
+		// the template being processed, get the current field's value
+		// from the template call.
+		// Do the same thing if it's a new page but there's a "preload" -
+		// unless a value for this field was already set in the query string.
+		if ( ( $page_exists || $cur_value == '' ) && ( $tif->getFullTextInPage() != '' ) && !$form_submitted && !$is_autoedit ) {
+			if ( $tif->hasValueFromPageForField( $field_name ) ) {
+				// Get value, and remove it, so that at the end
+				// we can have a list of all the fields that
+				// weren't handled by the form.
+				$cur_value = $tif->getAndRemoveValueFromPageForField( $field_name );
+
+				// If the field is a placeholder, the contents of 
+				// this template parameter should be treated as elements
+				// parsed by an another multiple template form.
+				// By putting that at the very end of the parsed string, 
+				// we'll have it processed as a regular multiple template form.
+				if ( $form_field->holdsTemplate() ) {
+					$existing_page_content .= $cur_value;
+				}
+			} elseif ( isset( $cur_value ) && !empty( $cur_value ) ) {
+				// Do nothing.
+			} else {
+				$cur_value = '';
+			}
+		}
 	}
 
 	/**
