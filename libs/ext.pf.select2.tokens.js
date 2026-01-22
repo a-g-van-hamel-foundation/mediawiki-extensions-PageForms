@@ -336,11 +336,14 @@ const Sortable = require( 'ext.pageforms.sortable' );
 			} else {
 				const wgPageFormsAutocompleteValues = mw.config.get( 'wgPageFormsAutocompleteValues' );
 				data = wgPageFormsAutocompleteValues[autocompletesettings];
-				//Convert data into the format accepted by Select2
+				// Convert data into the format accepted by Select2
+				// Method depends on whether we get an Array object or an object with named key/value pairs
 				if ( data !== undefined && data !== null ) {
+					var isArray = Array.isArray(data);
 					for (const key in data) {
 						values.push({
-							id: data[key], text: data[key]
+							id: isArray ? data[key] : key,
+							text: data[key]
 						});
 					}
 				}
