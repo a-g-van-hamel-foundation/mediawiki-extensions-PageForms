@@ -1182,7 +1182,9 @@ END;
 						$placeholderFields[] = self::placeholderFormat( $tif->getTemplateName(), $field_name );
 					}
 
-					$cur_value = $this->setCurrentValueAndChangeFieldValues( $cur_value, $delimiter, $tif, $field_name, $val_modifier );
+					if ( $val_modifier !== null ) {
+						$cur_value = $this->getCurrentValueAndChangeFieldValuesForValModifier( $cur_value, $delimiter, $tif, $field_name, $val_modifier );
+					}
 
 					// May be used for template calls and preloads
 					$this->maybeChangeCurrentValue( $cur_value, $field_name, $tif, $form_field, $page_exists, $form_submitted, $is_autoedit, $existing_page_content );
@@ -1762,20 +1764,22 @@ END;
 		return [ $form_text, $page_text, $form_page_title, $generated_page_name ];
 	}
 
-	private function setCurrentValueAndChangeFieldValues(
+	/**
+	 * If $val_modifier is '+' or '-', set current value
+	 * and change values in TemplateInForm
+	 */
+	private function getCurrentValueAndChangeFieldValuesForValModifier(
 		?string $cur_value,
 		string $delimiter,
 		PFTemplateInForm &$tif,
 		string $field_name,
 		?string $val_modifier
 	) {
-		// Page value
-		if ( $val_modifier !== null ) {
-			$page_value = $tif->getValuesFromPage()[$field_name];
-			// @todo - ?trim( $page_value )
-		} else {
-			$page_value = "";
+		if ( $val_modifier === null ) {
+			return $cur_value;
 		}
+
+		$page_value = $tif->getValuesFromPage()[$field_name];
 
 		if ( $val_modifier === '+' ) {
 			if ( preg_match( "#(,|\^)\s*$cur_value\s*(,|\$)#", $page_value ) === 0 ) {
@@ -1787,6 +1791,7 @@ END;
 			} else {
 				$cur_value = $page_value;
 			}
+			$tif->changeFieldValues( $field_name, $cur_value, $delimiter );
 		} elseif ( $val_modifier === '-' ) {
 			// get an array of elements to remove:
 			$remove = array_map( 'trim', explode( ",", $cur_value ) );
@@ -1807,9 +1812,8 @@ END;
 				// set a dummy string that evaluates to an empty string
 				$cur_value = '{{subst:lc: }}';
 			}
+			$tif->changeFieldValues( $field_name, $cur_value, $delimiter );
 		}
-
-		$tif->changeFieldValues( $field_name, $cur_value, $delimiter );
 		return $cur_value;
 	}
 
@@ -2058,7 +2062,7 @@ END;
 		&$cur_value,
 		&$cur_value_in_template,
 		PFFormField $form_field,
-		bool $form_submitted,
+		bool $form_submitted
 	): void {
 		if ( defined( 'CARGO_VERSION' ) && $form_field->hasFieldArg( 'mapping cargo table' ) &&
 			$form_field->hasFieldArg( 'mapping cargo field' ) && $form_field->hasFieldArg( 'mapping cargo value field' )
