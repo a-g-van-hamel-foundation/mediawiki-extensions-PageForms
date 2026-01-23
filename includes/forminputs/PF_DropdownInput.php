@@ -73,19 +73,25 @@ class PFDropdownInput extends PFEnumInput {
 				$possible_values = [];
 			}
 		}
-		foreach ( $possible_values as $possible_value ) {
+
+		$isIndexedArray = PFMappingUtils::isIndexedArray( $possible_values );
+		foreach ( $possible_values as $k => $v ) {
+			// possible_values come in one of two flavours,
+			// mapped and unmapped
+			$possible_value = $isIndexedArray ? $v : $k;	
 			$optionAttrs = [ 'value' => $possible_value ];
 			if ( $possible_value == $cur_value ) {
 				$optionAttrs['selected'] = "selected";
 			}
+			// If unmapped, check 'value_labels'
 			if (
-				array_key_exists( 'value_labels', $other_args ) &&
+				$isIndexedArray && array_key_exists( 'value_labels', $other_args ) &&
 				is_array( $other_args['value_labels'] ) &&
 				array_key_exists( $possible_value, $other_args['value_labels'] )
 			) {
 				$label = $other_args['value_labels'][$possible_value];
-			} else {
-				$label = $possible_value;
+			} else {				
+				$label = $v;
 			}
 			$innerDropdown .= Html::element( 'option', $optionAttrs, $label );
 		}

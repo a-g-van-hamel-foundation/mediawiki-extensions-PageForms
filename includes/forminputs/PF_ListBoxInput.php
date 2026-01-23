@@ -50,7 +50,13 @@ class PFListBoxInput extends PFMultiEnumInput {
 			$possible_values = [];
 		}
 		$optionsText = '';
-		foreach ( $possible_values as $possible_value ) {
+
+		$isIndexedArray = PFMappingUtils::isIndexedArray( $possible_values );
+		foreach ( $possible_values as $k => $v ) {
+			// possible_values come in one of two flavours,
+			// mapped and unmapped
+			$possible_value = $isIndexedArray ? $v : $k;
+			// If unmapped, check 'value_labels'
 			if (
 				array_key_exists( 'value_labels', $this->mOtherArgs ) &&
 				is_array( $this->mOtherArgs['value_labels'] ) &&
@@ -58,7 +64,7 @@ class PFListBoxInput extends PFMultiEnumInput {
 			) {
 				$optionLabel = $this->mOtherArgs['value_labels'][$possible_value];
 			} else {
-				$optionLabel = $possible_value;
+				$optionLabel = $v;
 			}
 			$optionAttrs = [ 'value' => $possible_value ];
 			if ( in_array( $possible_value, $cur_values ) ) {
