@@ -56,9 +56,13 @@ class PFCheckboxesInput extends PFMultiEnumInput {
 			$possible_values = [];
 		}
 		$text = '';
-		foreach ( $possible_values as $key => $possible_value ) {
+		$isIndexedArray = PFMappingUtils::isIndexedArray( $possible_values );
+		foreach ( $possible_values as $key => $v ) {
+			// possible_values come in one of two flavours,
+			// mapped and unmapped
+			$possible_value = $isIndexedArray ? $v : $key;
 			$cur_input_name = $input_name . '[' . $key . ']';
-
+			// If unmapped, check 'value_labels'
 			if (
 				array_key_exists( 'value_labels', $other_args ) &&
 				is_array( $other_args['value_labels'] ) &&
@@ -66,7 +70,7 @@ class PFCheckboxesInput extends PFMultiEnumInput {
 			) {
 				$label = $other_args['value_labels'][$possible_value];
 			} else {
-				$label = $possible_value;
+				$label = $v;
 			}
 
 			$checkbox_attrs = [

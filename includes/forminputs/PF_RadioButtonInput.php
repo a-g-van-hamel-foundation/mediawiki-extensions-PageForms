@@ -34,18 +34,29 @@ class PFRadioButtonInput extends PFEnumInput {
 			$possible_values = [];
 		}
 
+		// possible_values come in one of two flavours
+		// mapped and unmapped
+		$isIndexedArray = PFMappingUtils::isIndexedArray( $possible_values );
+
 		// Add a "None" value at the beginning, unless this is a
 		// mandatory field and there's a current value in place (either
 		// through a default value or because we're editing an existing
 		// page).
 		if ( !$is_mandatory || $cur_value === '' ) {
-			array_unshift( $possible_values, '' );
+			if ( $isIndexedArray ) {
+				array_unshift( $possible_values, '' );
+			} else {
+				$possible_values = array('' => '') + $possible_values;
+			}
 		}
 
 		// If $cur_value is an invalid value (not null, and not one
 		// of the allowed options), set it to blank, so it can show
 		// up as "None" (if "None" is one of the options).
-		if ( $cur_value !== null && !in_array( $cur_value, $possible_values ) ) {
+		if ( $cur_value !== null && !in_array(
+			$cur_value,
+			$isIndexedArray ? $possible_values : array_keys( $possible_values )
+		) ) {
 			$cur_value = '';
 		}
 
@@ -55,7 +66,8 @@ class PFRadioButtonInput extends PFEnumInput {
 			$itemClass .= ' ' . $other_args['class'];
 		}
 
-		foreach ( $possible_values as $possible_value ) {
+		foreach ( $possible_values as $k => $v ) {
+			$possible_value = $isIndexedArray ? $v : $k;
 			$wgPageFormsTabIndex++;
 			$wgPageFormsFieldNum++;
 			$input_id = "input_$wgPageFormsFieldNum";
@@ -63,7 +75,7 @@ class PFRadioButtonInput extends PFEnumInput {
 			$radiobutton_attrs = [
 				'value' => $possible_value,
 				'id' => $input_id,
-				'tabindex' => $wgPageFormsTabIndex,
+				'tabindex' => $wgPageFormsTabIndex
 			];
 			if ( array_key_exists( 'origName', $other_args ) ) {
 				$radiobutton_attrs['origname'] = $other_args['origName'];
@@ -76,13 +88,13 @@ class PFRadioButtonInput extends PFEnumInput {
 				// blank/"None" value
 				$label = wfMessage( 'pf_formedit_none' )->text();
 			} elseif (
-				array_key_exists( 'value_labels', $other_args ) &&
+				$isIndexedArray && array_key_exists( 'value_labels', $other_args ) &&
 				is_array( $other_args['value_labels'] ) &&
 				array_key_exists( $possible_value, $other_args['value_labels'] )
 			) {
 				$label = htmlspecialchars( $other_args['value_labels'][$possible_value] );
 			} else {
-				$label = $possible_value;
+				$label = $v;
 			}
 
 			$itemAttrs = [ 'class' => $itemClass ];

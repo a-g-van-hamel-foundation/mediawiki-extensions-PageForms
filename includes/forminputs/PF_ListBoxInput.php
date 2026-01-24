@@ -58,7 +58,7 @@ class PFListBoxInput extends PFMultiEnumInput {
 			$possible_value = $isIndexedArray ? $v : $k;
 			// If unmapped, check 'value_labels'
 			if (
-				array_key_exists( 'value_labels', $this->mOtherArgs ) &&
+				$isIndexedArray && array_key_exists( 'value_labels', $this->mOtherArgs ) &&
 				is_array( $this->mOtherArgs['value_labels'] ) &&
 				array_key_exists( $possible_value, $this->mOtherArgs['value_labels'] )
 			) {
