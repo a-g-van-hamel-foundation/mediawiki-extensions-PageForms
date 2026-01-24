@@ -662,12 +662,11 @@ class PFFormField {
 						if ( $this->hasFieldArg( 'remote autocompletion' ) ) {
 							$hasList = $cur_values['is_list'] ?? false;
 							// The key containing the actual title of the page
-							$cur_values = array_keys( PFMappingUtils::getLabelsForTitles( $cur_values, true ) );
+							$cur_values = array_keys( PFMappingUtils::mapPagenamesToDisplayTitles( $cur_values ) );
 							if ( $hasList ) {
 								$cur_values['is_list'] = $hasList;
 							}
 						}
-
 					} else {
 						foreach ( $field_query_val as $key => $val ) {
 							$cur_values[$key] = $val;

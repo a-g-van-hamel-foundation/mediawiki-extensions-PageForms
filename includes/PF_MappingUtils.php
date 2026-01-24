@@ -123,8 +123,7 @@ class PFMappingUtils {
 				break;
 			case 'displaytitle':
 				$isReverseLookup = ( array_key_exists( 'reverselookup', $args ) && ( $args['reverselookup'] == 'true' ) );
-				$mappedValues = self::getLabelsForTitles( $values, $isReverseLookup );
-				// @todo - why just array_values ?
+				$mappedValues = self::mapPagenamesToDisplayTitles( $values );				
 				break;
 		}
 		$res = ( $mappedValues !== null ) ? self::disambiguateLabels( $mappedValues ) : $values;
@@ -322,113 +321,57 @@ class PFMappingUtils {
 	}
 
 	/**
-	 * Get a named array of display titles
-	 *
-	 * @param array $values = pagenames
-	 * @param bool $doReverseLookup
-	 * @return array
+	 * Attempts to map pagenames to their display titles if any
+	 * and if that fails, defaults to their pagenames.
 	 */
-	public static function getLabelsForTitles(
-		array $values,
-		bool $doReverseLookup = false
-	) {
-		$labels = [];
-		$pageNamesForValues = [];
-		$allTitles = [];
-		foreach ( $values as $k => $value ) {
-			if ( trim( $value ) === "" ) {
+	public static function mapPagenamesToDisplayTitles(
+		array $pagenames
+	): array {
+		$titlesLabels = [];
+
+		// Create two arrays of Title objects first: 
+		// $allTitles (named array) - Title may be null
+		// $titleInstances (indexed) - proper Title objects only
+		$allTitles = $titleInstances = [];
+		foreach ( $pagenames as $k => $pagename ) {
+			$pagename = trim( $pagename );
+			if ( $pagename === "" ) {
 				continue;
 			}
-
-			// In some (rare) cases the provided key is the actual page name, resulting
-			// in errors when saving the form (since the display title was only shown).
-			if ( is_string( $k ) ) {
-				$titleFromKey = Title::newFromText( $k );
-				if ( $titleFromKey instanceof Title && $titleFromKey->exists() ) {
-					$allTitles[] = $titleFromKey;
-					$pageNamesForValues[$k] = $titleFromKey->getPrefixedText();
-					continue;
-				}
-			}
-
-			if ( $doReverseLookup ) {
-				// The regex matches every 'real' page inside the last brackets; for example
-				//  'Privacy (doel) (Privacy (doel)concept)',
-				//  'Pagina (doel) (Pagina)',
-				// will match on (Privacy (doel)concept), (Pagina), ect
-				if ( !preg_match_all( '/\((?:[^)(]*(?R)?)*+\)/', $value, $matches ) ) {
-					$title = Title::newFromText( $value );
-					// @todo : maybe $title instanceof Title && ...?
-					if ( $title && $title->exists() ) {
-						$labels[ $value ] = $value;
-					}
-					// If no matches where found, just leave the value as is
-					continue;
-				} else {
-					$firstMatch = reset( $matches );
-					// The actual match is always in the last group
-					$realPage = end( $firstMatch );
-					// The match still contains the first ( and last ) character, remove them
-					$realPage = substr( $realPage, 1 );
-					// Finally set the actual value
-					$value = substr( $realPage, 0, -1 );
-				}
-			}
-			$titleInstance = Title::newFromText( $value );
-			// If the title is invalid, just leave the value as is
-			if ( $titleInstance === null ) {
-				continue;
-			}
-			$pageNamesForValues[$value] = $titleInstance->getPrefixedText();
-			$allTitles[] = $titleInstance;
-		}
-
-		$allDisplayTitles = self::getDisplayTitles( $allTitles );
-		foreach ( $pageNamesForValues as $value => $pageName ) {
-			if ( isset( $allDisplayTitles[ $pageName ] )
-				&& strtolower( $allDisplayTitles[ $pageName ] ) !== strtolower( $value )
-			) {
-				$displayValue = sprintf( '%s (%s)', $allDisplayTitles[ $pageName ], $value );
-			} else {
-				$displayValue = $value;
-			}
-			$labels[$value] = $displayValue;
-		}
-
-		return $labels;
-	}
-
-	/**
-	 * Returns pages each with their display title as the value.
-	 * @param array $titlesUnfiltered
-	 * @return array
-	 */
-	public static function getDisplayTitles(
-		array $titlesUnfiltered
-	) {
-		$pages = $titles = [];
-		foreach ( $titlesUnfiltered as $k => $title ) {
+			$title = Title::newFromText( $pagename );
 			if ( $title instanceof Title ) {
-				$titles[ $k ] = $title;
+				$allTitles[$pagename] = $title;
+				$titleInstances[] = $title;
+			} else {
+				$allTitles[$pagename] = null;
 			}
 		}
+
 		$properties = MediaWikiServices::getInstance()->getPageProps()
-			->getProperties( $titles, [ 'displaytitle', 'defaultsort' ] );
-		foreach ( $titles as $title ) {
+			->getProperties( $titleInstances, [ 'displaytitle', 'defaultsort' ] );
+
+		// Build the array we want to output
+		foreach( $allTitles as $pagename => $title ) {
+			if ( $title === null ) {
+				$titleLabels[$pagename] = $pagename;
+				continue;
+			}
 			if ( array_key_exists( $title->getArticleID(), $properties ) ) {
 				$titleprops = $properties[$title->getArticleID()];
 			} else {
 				$titleprops = [];
 			}
-			$titleText = $title->getPrefixedText();
+			// Potentially normalise pagename
+			$pagename = $title->getPrefixedText();
+			// Populate titlesLabels
 			if ( array_key_exists( 'displaytitle', $titleprops ) &&
 				trim( str_replace( '&#160;', '', strip_tags( $titleprops['displaytitle'] ) ) ) !== '' ) {
-				$pages[$titleText] = htmlspecialchars_decode( $titleprops['displaytitle'] );
+				$titlesLabels[$pagename] = htmlspecialchars_decode( $titleprops['displaytitle'] );
 			} else {
-				$pages[$titleText] = $titleText;
+				$titlesLabels[$pagename] = $pagename;
 			}
 		}
-		return $pages;
+		return $titlesLabels;
 	}
 
 	/**
