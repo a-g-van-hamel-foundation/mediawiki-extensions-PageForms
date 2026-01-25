@@ -89,8 +89,9 @@
 	pf.ComboBoxInput.prototype.bindEvents = function() {
 
 		this.$input.blur(() => {
-			const presentLabel = this.$input.val().trim();
-			const selectedLabel = this.$input.attr('data-label').trim();
+			const presentLabel= this.$input.val().trim();
+			const selectedLabelRaw = this.$input.attr('data-label').trim();
+			const selectedLabel = this.stripHtmlTags(selectedLabelRaw);
 			if (presentLabel !== selectedLabel && this.config['existingvaluesonly']) {
 				//Disallows non-existing value
 				this.setValueAndLabel("", "");
@@ -157,6 +158,12 @@
 			let data_source = this.config.autocompletesettings;
 			curValue = this.getValue(); // current label or substring being typed
 			const curHiddenVal = this.getHiddenInputValue(); //submitted
+			// Label, possibly including html tags
+			const curLabel = this.$input.attr("data-label");
+			// current label or substring being typed.
+			// When matching a previously selected item, we require
+			// the original label not the 'stripped' one
+			const substring = curValue == this.stripHtmlTags(curLabel) ? curLabel : curValue;
 
 			if (curValue.length == 0) {
 				values.push({
@@ -172,7 +179,7 @@
 			// Cargo field, wikidata, ...
 			if (data_type === 'cargo field') {
 				const table_and_field = data_source.split('|');
-				my_server += "?action=pfautocomplete&format=json&cargo_table=" + table_and_field[0] + "&cargo_field=" + table_and_field[1] + "&substr=" + curValue;
+				my_server += "?action=pfautocomplete&format=json&cargo_table=" + table_and_field[0] + "&cargo_field=" + table_and_field[1] + "&substr=" + substring;
 				if ( table_and_field.length > 2 ) {
 					my_server += '&cargo_where=' + table_and_field[2];
 				}
@@ -193,7 +200,7 @@
 					} );
 					data_source = encodeURIComponent( data_source );
 				}
-				my_server += "?action=pfautocomplete&format=json&" + data_type + "=" + data_source + "&substr=" + curValue;
+				my_server += "?action=pfautocomplete&format=json&" + data_type + "=" + data_source + "&substr=" + substring;
 
 				// Mapping property (Semantic MediaWiki)
 				const mappingProperty = this.$input.attr('mappingproperty');
@@ -613,8 +620,13 @@
 	pf.ComboBoxInput.prototype.setValueAndLabel = function(val, label) {
 		const hiddenInput = this.getHiddenInput();
 		$(hiddenInput).val(val);
-		this.setValue(label);
-		this.setTitle(label);
+		// Strip html tags from label because OOUI's input
+		// widget fails to render them. Still requires that
+		// 'data-label' holds the original label for reference
+		// (see use of substrings in API query).
+		const labelStripped = this.stripHtmlTags(label.toString());
+		this.setValue(labelStripped);
+		this.setTitle(labelStripped);
 		this.$input.attr('data-value', val); // required as reference
 		this.$input.attr('data-label', label); // required as reference
 		const stringType = (val == label) ? 'value' : 'label';
@@ -668,6 +680,12 @@
 		const maxWidth = parseInt(this.$element.css("width"));
 		const newWidth = (suggWidth >= maxWidth) ? maxWidth : suggWidth;
 		this.$element.css("width", newWidth);
+	};
+
+	pf.ComboBoxInput.prototype.stripHtmlTags = function(str) {
+		let tmp = document.createElement("div");
+		tmp.innerHTML = str;
+		return tmp.textContent || tmp.innerText || str;
 	};
 
 }(jQuery, mediaWiki, pageforms));
