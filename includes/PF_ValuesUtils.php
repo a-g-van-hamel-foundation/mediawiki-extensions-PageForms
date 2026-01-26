@@ -552,11 +552,11 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		global $wgPageFormsAutocompleteOnAllChars;
 		$prefixWildcard = ( $wgPageFormsAutocompleteOnAllChars ) ? "*": "";
 		if ( $mappingProperty !== null ) {
-			$rawQuery .= "{$conceptArg} [[{$mappingProperty}::~{$prefixWildcard}{$substring}*]] OR {$conceptArg} [[{$mappingProperty}::like:{$prefixWildcard}{$substring}*]]";
+			$rawQuery .= self::arrangeSMWQueryElements( $conceptArg, $mappingProperty, $prefixWildcard, $substring );
 		} elseif ( $useDisplayTitle ) {
 			// Expects that 'Display title of' is available as a property
 			// @todo - may not be the case. Is a solution feasible?
-			$rawQuery .= "{$conceptArg} [[Display title of::~{$prefixWildcard}{$substring}*]] OR {$conceptArg} [[Display title of::like:{$prefixWildcard}{$substring}*]]";
+			$rawQuery .= self::arrangeSMWQueryElements( $conceptArg, "Display title of", $prefixWildcard, $substring );
 		} else {
 			$rawQuery .= "{$conceptArg} [[~{$prefixWildcard}{$substring}*]] OR {$conceptArg} [[like:{$prefixWildcard}{$substring}*]]";
 		}
@@ -1038,6 +1038,52 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 			}
 			return $sqlCond;
 		}
+	}
+
+	public static function arrangeSMWQueryElements(
+		string $baseArg,
+		string $mappingProperty,
+		string $prefixWildcard,
+		string $substr
+	): string {
+		global $smwgDefaultStore;
+		global $smwgEnabledFulltextSearch;
+		$handleTokens = ( $smwgEnabledFulltextSearch || $smwgDefaultStore === "SMW\Elastic\ElasticStore" );
+
+		if ( !$handleTokens ) {
+			// (1) standard SQLStore
+			return "{$baseArg} [[{$mappingProperty}::~{$prefixWildcard}{$substr}*]] OR [[{$mappingProperty}::{$substr}]]";
+		}
+
+		// (2) Elasticsearch/Opensearch or FTS
+		
+		global $smwgFulltextSearchMinTokenSize;
+		// @todo get min token size for ES;
+		// settling on default of 3 for now
+		$minTokenSize = $smwgFulltextSearchMinTokenSize ?? 3;
+		$cleanSubStr = preg_replace( "#[[:punct:]]#", " ", $substr );
+		$substrArr = explode( " ", $cleanSubStr );
+		$propsWithTilde = [];
+		$propsWithLike = [];
+
+		$searches = [];
+		foreach( $substrArr as $s ) {
+			$s = trim($s);
+			if ( strlen(html_entity_decode($s)) > $minTokenSize ) {
+				// wildcard prefix does not work here
+				$searches[] = "+$s*";
+			}
+		}
+
+		$queryParts = [];
+		$queryParts[] = "{$baseArg} [[{$mappingProperty}::~" . implode( " ", $searches ) . "]]";
+		if ( $smwgEnabledFulltextSearch ) {
+			// LIKE
+			$queryParts[] = "{$baseArg} [[{$mappingProperty}::like:{$prefixWildcard}{$substr}*]]";
+		}
+		// exact
+		$queryParts[] = "{$baseArg} [[{$mappingProperty}::$substr]]";
+		return implode( " OR ", $queryParts );
 	}
 
 	/**
