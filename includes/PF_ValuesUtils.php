@@ -1056,12 +1056,13 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		}
 
 		// (2) Elasticsearch/Opensearch or FTS
-		
+
 		global $smwgFulltextSearchMinTokenSize;
 		// @todo get min token size for ES;
 		// settling on default of 3 for now
 		$minTokenSize = $smwgFulltextSearchMinTokenSize ?? 3;
-		$cleanSubStr = preg_replace( "#[[:punct:]]#", " ", $substr );
+		// remove punctuation
+		$cleanSubStr = preg_replace("/[^a-zA-Z0-9]+/", " ", $substr );
 		$substrArr = explode( " ", $cleanSubStr );
 		$propsWithTilde = [];
 		$propsWithLike = [];
