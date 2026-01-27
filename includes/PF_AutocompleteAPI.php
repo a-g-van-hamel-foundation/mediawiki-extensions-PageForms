@@ -73,11 +73,15 @@ class PFAutocompleteAPI extends ApiBase {
 			) {
 				$pages = $this->getAllValuesForProperty( $property, $substr );
 				$data = $pages;
-			} else {
-				// Inverse queries (makes sense for properties of type 'Page')
+			} elseif ( $propDataType === '_wpg' ) {
+				// Uses inverse query, which makes sense
+				// only for properties of type 'Page'
 				$map = true;
 				$pages = PFValuesUtils::getAllPagesForPropertyRemotely( $property, $substr, $mappingProperty );
-				$data = PFMappingUtils::getMappedValues( $pages, $mappingType, $mapArgs, $wgPageFormsUseDisplayTitle );
+				$data = PFMappingUtils::getMappedValues( $pages, $mappingType, $mapArgs, $wgPageFormsUseDisplayTitle );	
+			} else {
+				// Unsupported
+				$data = [];
 			}
 		} elseif ( $wikidata !== null ) {
 			$data = PFValuesUtils::getAllValuesFromWikidata( urlencode( $wikidata ), $substr );

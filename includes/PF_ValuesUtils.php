@@ -582,7 +582,7 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		mixed $mappingProperty = null
 	) {
 		$mappingProperty = $mappingProperty !== null ? $mappingProperty : "Display title of";
-		$rawQuery = "[[-{$propertyName}::+]] [[{$mappingProperty}::~*{$substring}*]] OR [[-{$propertyName}::+]] [[{$mappingProperty}::like:*{$substring}*]]";
+		$rawQuery = self::arrangeSMWQueryElements( "[[-{$propertyName}::+]]", $mappingProperty, "*", $substring );
 		return self::getAllPagesForQuery( $rawQuery );
 	}
 
@@ -1064,25 +1064,26 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		// remove punctuation
 		$cleanSubStr = preg_replace("/[^a-zA-Z0-9]+/", " ", $substr );
 		$substrArr = explode( " ", $cleanSubStr );
-		$propsWithTilde = [];
-		$propsWithLike = [];
 
 		$searches = [];
 		foreach( $substrArr as $s ) {
 			$s = trim($s);
-			if ( strlen(html_entity_decode($s)) > $minTokenSize ) {
+			if ( strlen(html_entity_decode($s)) >= $minTokenSize ) {
 				// wildcard prefix does not work here
 				$searches[] = "+$s*";
 			}
 		}
 
 		$queryParts = [];
-		$queryParts[] = "{$baseArg} [[{$mappingProperty}::~" . implode( " ", $searches ) . "]]";
+		if ( count($searches) > 0 ) {
+			// tokens if any
+			$queryParts[] = "{$baseArg} [[{$mappingProperty}::~" . implode( " ", $searches ) . "]]";
+		}
 		if ( $smwgEnabledFulltextSearch ) {
 			// LIKE
 			$queryParts[] = "{$baseArg} [[{$mappingProperty}::like:{$prefixWildcard}{$substr}*]]";
 		}
-		// exact
+		// exact match
 		$queryParts[] = "{$baseArg} [[{$mappingProperty}::$substr]]";
 		return implode( " OR ", $queryParts );
 	}
