@@ -134,6 +134,7 @@ class PFComboBoxInput extends PFFormInput {
 			'data-value' => $cur_value,
 			'data-label' => $cur_label
 		];
+		$inputAttrs['data-mapping-from-url'] = array_key_exists( 'mapping from url', $other_args ) ? '1' : '0';
 		if ( array_key_exists( 'origName', $other_args ) ) {
 			$inputAttrs['origname'] = $other_args['origName'];
 		}

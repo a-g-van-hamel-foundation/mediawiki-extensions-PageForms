@@ -109,17 +109,8 @@ class PFMappingUtils {
 				$mappedValues = self::getValuesWithTranslateMapping( $values, $translateMapping );
 				break;
 			case 'mapping from url':
-				// Used only to map current values to labels
-				// if supported by the service
-				$mappedValues = [];
-				foreach( $values as $k => $v ) {
-					$urlResults = PFValuesUtils::getValuesFromExternalURL( $args["values from url"], $v );
-					if ( is_array( $urlResults ) && array_key_exists( $v, $urlResults ) ) {
-						$mappedValues[$v] = $urlResults[$v];
-					} else {
-						$mappedValues[$v] = $v;
-					}
-				}
+				// Do nothing server-side
+				// see JS implementations instead
 				break;
 			case 'displaytitle':
 				$isReverseLookup = ( array_key_exists( 'reverselookup', $args ) && ( $args['reverselookup'] == 'true' ) );

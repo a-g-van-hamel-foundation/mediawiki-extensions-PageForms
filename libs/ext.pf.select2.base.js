@@ -228,6 +228,7 @@
 			} else if( $(input_id).attr('mappingtemplate') !== undefined ) {
 				autocomplete_opts.mappingtemplate = $(input_id).attr( "mappingtemplate" );
 			}
+			autocomplete_opts.mappingfromurl = $(input_id).attr('data-mapping-from-url') !== undefined && $(input_id).attr('data-mapping-from-url') == "1";
 			return autocomplete_opts;
 		},
 

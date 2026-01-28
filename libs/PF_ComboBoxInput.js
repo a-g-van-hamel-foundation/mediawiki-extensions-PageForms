@@ -56,6 +56,12 @@
 		this.setInputAttribute('mappingproperty', element.attr('mappingproperty'));
 		this.setInputAttribute('mappingtemplate', element.attr('mappingtemplate'));
 
+		this.config['data-mapping-from-url'] = element.attr('data-mapping-from-url');
+		if (this.config.autocompletedatatype == 'external_url' && this.config['data-mapping-from-url'] == "1" ) {
+			// Fetch label from URL if 'mapping from url' is set
+			this.setValueAndLabel(curVal, this.getLabelForValueFromUrl(curVal));
+		}
+
 		// Initialize values in the combobox
 		this.setValues();
 
@@ -687,5 +693,42 @@
 		tmp.innerHTML = str;
 		return tmp.textContent || tmp.innerText || str;
 	};
+
+	/**
+	 * Used for 'external_url' with 'mapping from url'
+	 */
+	pf.ComboBoxInput.prototype.getLabelForValueFromUrl = function(val) {
+		// Build URL for the Ajax call
+		let my_server = mw.config.get('wgScriptPath') + "/api.php" + "?action=pfautocomplete&format=json" + "&external_url=" + this.config.autocompletesettings;
+		my_server += "&substr=" + val;
+
+		// Set defaults
+		let label = val;
+		let apiRequest = null;
+
+		apiRequest = $.ajax({
+			url: my_server,
+			async: false,
+			dataType: 'json',
+			beforeSend: function() {
+				if ( apiRequest !== null ) {
+					apiRequest.abort();
+				}
+			},
+			success: function(Data) {
+				if (Data.pfautocomplete !== undefined && Data.pfautocomplete.length > 0) {
+					Data = Data.pfautocomplete;
+					for ( let i = 0; i < Data.length; i++ ) {
+						if ( Data[i].title == val ) {
+							// Found label
+							label = (Data[i].displaytitle !== undefined) ? Data[i].displaytitle : Data[i].title;
+							break;
+						}
+					}
+				}
+			}
+		});
+		return label;
+	}
 
 }(jQuery, mediaWiki, pageforms));

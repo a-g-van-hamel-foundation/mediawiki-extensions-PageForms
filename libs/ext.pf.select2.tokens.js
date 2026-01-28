@@ -61,6 +61,18 @@ const Sortable = require( 'ext.pageforms.sortable' );
 			window.console.log(e);
 		}
 
+		// Possibly, map 'values from url' to labels by
+		// making an Ajax call and update selected options
+		let autocompleteOptions = this.getAutocompleteOpts();
+		if ( autocompleteOptions.autocompletedatatype == 'external_url' && autocompleteOptions.mappingfromurl ) {
+			var cur_val = element.attr('value');
+			let delimiter = this.getDelimiter($("#" + this.id));
+			let cur_vals = cur_val.split(delimiter).map(function(item) {
+				return item.trim();
+			});
+			this.mapLabelsFromUrl(cur_vals, element);
+		}
+
 		// Make the tokens sortable, using the SortableJS library.
 		const tokensUL = element.parent().find('ul.select2-selection__rendered');
 		const tokensSelect = element.parents('span.inputSpan').find('select');
@@ -476,6 +488,72 @@ const Sortable = require( 'ext.pageforms.sortable' );
 
 		return delimiter;
 	};
+
+	/**
+	 * Map 'values from url' to labels through ajax call
+	 */
+	tokens_proto.mapLabelsFromUrl = function(curVals, element) {
+		let input = $("#" + this.id);
+
+		// First, create a lookup table
+		let lookupTbl = {};
+		for ( var i = 0; i < curVals.length; i++ ) {
+			const newLabel = this.getLabelForValueFromUrl(curVals[i]);
+			lookupTbl[curVals[i]] = newLabel;
+		}
+
+		// Modifying options does not work well so
+		// (1) discard present tokens and...
+		const tokensSelect = element.parents('span.inputSpan').find('select');
+		tokensSelect.find('option').each( function() {
+			$(this).remove();
+		} );
+		// (2) create and append new options instead
+		curVals.forEach( function(v) {
+			const newLabel = lookupTbl[v];
+			const newOption = new Option(newLabel, v, true, true);
+			input.append(newOption).trigger('change');
+		} );
+	}
+
+	/*
+	 * Equivalent of getLabelForValueFromUrl() in PF_ComboBoxInput.js
+	 */
+	tokens_proto.getLabelForValueFromUrl = function(val) {
+		// Build URL for the Ajax call
+		const autocompletesettings = this.getAutocompleteOpts().autocompletesettings.split(",");
+		const urlSource = autocompletesettings[0].trim();
+		let my_server = mw.config.get('wgScriptPath') + "/api.php" + "?action=pfautocomplete&format=json" + "&external_url=" + encodeURIComponent(urlSource);
+		my_server += "&substr=" + encodeURIComponent(val);
+
+		// Set defaults
+		let label = val;
+		let apiRequest = null;
+
+		apiRequest = $.ajax({
+			url: my_server,
+			async: false,
+			dataType: 'json',
+			beforeSend: function() {
+				if ( apiRequest !== null ) {
+					apiRequest.abort();
+				}
+			},
+			success: function(Data) {
+				if (Data.pfautocomplete !== undefined && Data.pfautocomplete.length > 0 ) {
+					Data = Data.pfautocomplete;
+					for ( let i = 0; i < Data.length; i++ ) {
+						if ( Data[i].title == val ) {
+							// Found label
+							label = (Data[i].displaytitle !== undefined) ? Data[i].displaytitle : Data[i].title;
+							break;
+						}
+					}
+				}
+			}
+		});
+		return label;
+	}
 
 	pf.select2.tokens.prototype = tokens_proto;
 
