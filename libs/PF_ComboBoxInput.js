@@ -55,11 +55,13 @@
 		this.setInputAttribute('tabIndex', element.attr('tabindex'));
 		this.setInputAttribute('mappingproperty', element.attr('mappingproperty'));
 		this.setInputAttribute('mappingtemplate', element.attr('mappingtemplate'));
+		if ( element.attr('data-mapping-from-url') !== undefined ) {
+			this.config['mappingfromurl'] = element.attr('data-mapping-from-url');
+		}
 
-		this.config['data-mapping-from-url'] = element.attr('data-mapping-from-url');
-		if (this.config.autocompletedatatype == 'external_url' && this.config['data-mapping-from-url'] == "1" ) {
+		if (this.config.autocompletedatatype == 'external_url' && this.config['mappingfromurl'] !== undefined ) {
 			// Fetch label from URL if 'mapping from url' is set
-			this.setValueAndLabel(curVal, this.getLabelForValueFromUrl(curVal));
+			this.setValueAndLabel(curVal, this.getLabelForValueFromUrl(curVal, this.config['mappingfromurl']));
 		}
 
 		// Initialize values in the combobox
@@ -697,10 +699,10 @@
 	/**
 	 * Used for 'external_url' with 'mapping from url'
 	 */
-	pf.ComboBoxInput.prototype.getLabelForValueFromUrl = function(val) {
+	pf.ComboBoxInput.prototype.getLabelForValueFromUrl = function(val, urlDataSource) {
 		// Build URL for the Ajax call
-		let my_server = mw.config.get('wgScriptPath') + "/api.php" + "?action=pfautocomplete&format=json" + "&external_url=" + this.config.autocompletesettings;
-		my_server += "&substr=" + val;
+		let my_server = mw.config.get('wgScriptPath') + "/api.php" + "?action=pfautocomplete&format=json" + "&external_url=" + encodeURIComponent(urlDataSource);
+		my_server += "&substr=" + encodeURIComponent(val);
 
 		// Set defaults
 		let label = val;

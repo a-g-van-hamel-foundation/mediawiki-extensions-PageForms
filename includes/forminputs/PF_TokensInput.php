@@ -156,7 +156,9 @@ class PFTokensInput extends PFFormInput {
 			'tabindex' => $wgPageFormsTabIndex,
 			'autocompletesettings' => $autocompleteSettings,
 		];
-		$inputAttrs['data-mapping-from-url'] = array_key_exists( 'mapping from url', $other_args ) ? '1' : '0';
+		if ( array_key_exists( 'mapping from url', $other_args ) ) {
+			$inputAttrs['data-mapping-from-url'] = $other_args['mapping from url'];
+		}
 		if ( array_key_exists( 'origName', $other_args ) ) {
 			$inputAttrs['origName'] = $other_args['origName'];
 		}

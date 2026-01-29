@@ -64,13 +64,13 @@ const Sortable = require( 'ext.pageforms.sortable' );
 		// Possibly, map 'values from url' to labels by
 		// making an Ajax call and update selected options
 		let autocompleteOptions = this.getAutocompleteOpts();
-		if ( autocompleteOptions.autocompletedatatype == 'external_url' && autocompleteOptions.mappingfromurl ) {
-			var cur_val = element.attr('value');
+		if ( autocompleteOptions.autocompletedatatype == 'external_url' && autocompleteOptions.mappingfromurl !== undefined ) {
+			var curVal = element.attr('value');
 			let delimiter = this.getDelimiter($("#" + this.id));
-			let cur_vals = cur_val.split(delimiter).map(function(item) {
+			let curVals = curVal.split(delimiter).map(function(item) {
 				return item.trim();
 			});
-			this.mapLabelsFromUrl(cur_vals, element);
+			this.mapLabelsFromUrl(element, curVals, autocompleteOptions.mappingfromurl);
 		}
 
 		// Make the tokens sortable, using the SortableJS library.
@@ -492,13 +492,13 @@ const Sortable = require( 'ext.pageforms.sortable' );
 	/**
 	 * Map 'values from url' to labels through ajax call
 	 */
-	tokens_proto.mapLabelsFromUrl = function(curVals, element) {
+	tokens_proto.mapLabelsFromUrl = function(element, curVals, urlDataSource) {
 		let input = $("#" + this.id);
 
 		// First, create a lookup table
 		let lookupTbl = {};
 		for ( var i = 0; i < curVals.length; i++ ) {
-			const newLabel = this.getLabelForValueFromUrl(curVals[i]);
+			const newLabel = this.getLabelForValueFromUrl(curVals[i], urlDataSource);
 			lookupTbl[curVals[i]] = newLabel;
 		}
 
@@ -519,11 +519,9 @@ const Sortable = require( 'ext.pageforms.sortable' );
 	/*
 	 * Equivalent of getLabelForValueFromUrl() in PF_ComboBoxInput.js
 	 */
-	tokens_proto.getLabelForValueFromUrl = function(val) {
+	tokens_proto.getLabelForValueFromUrl = function(val, urlDataSource) {
 		// Build URL for the Ajax call
-		const autocompletesettings = this.getAutocompleteOpts().autocompletesettings.split(",");
-		const urlSource = autocompletesettings[0].trim();
-		let my_server = mw.config.get('wgScriptPath') + "/api.php" + "?action=pfautocomplete&format=json" + "&external_url=" + encodeURIComponent(urlSource);
+		let my_server = mw.config.get('wgScriptPath') + "/api.php" + "?action=pfautocomplete&format=json" + "&external_url=" + encodeURIComponent(urlDataSource);
 		my_server += "&substr=" + encodeURIComponent(val);
 
 		// Set defaults
