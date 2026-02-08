@@ -67,7 +67,9 @@ const Sortable = require( 'ext.pageforms.sortable' );
 		if ( autocompleteOptions.autocompletedatatype == 'external_url' && autocompleteOptions.mappingfromurl !== undefined ) {
 			var curVal = element.attr('value');
 			let delimiter = this.getDelimiter($("#" + this.id));
-			let curVals = curVal.split(delimiter).map(function(item) {
+			let curVals = curVal.split(delimiter).filter(function(item) {
+				return item.trim() != "" ? true : false;
+			}).map(function(item) {
 				return item.trim();
 			});
 			this.mapLabelsFromUrl(element, curVals, autocompleteOptions.mappingfromurl);
