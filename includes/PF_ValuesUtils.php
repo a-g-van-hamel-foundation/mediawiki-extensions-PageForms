@@ -759,7 +759,7 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		} elseif ( $source_type == 'category' ) {
 			$names_array = self::getAllPagesForCategory( $source_name, 10 );
 		} elseif ( $source_type == 'concept' ) {
-			$names_array = self::getAllPagesForConcept( $source_name );
+			$names_array = self::getAllPagesForConceptRemotely( $source_name, null );
 		} elseif ( $source_type == 'query' ) {
 			// Get rid of the "@", which is a placeholder for the substring,
 			// since there is no substring here.
