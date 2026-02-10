@@ -44,8 +44,8 @@ class PFFormField {
 	private $mDescriptionArgs;
 	private $mLabel;
 	private $mLabelMsg;
-	private static $mValuesSource = null;
-	private static $mValuesSourceType = null;
+	private static $mValuesSource;
+	private static $mValuesSourceType;
 	/**
 	 * somewhat of a hack - these two fields are for a field in a specific
 	 * representation of a form, not the form definition; ideally these
@@ -285,6 +285,9 @@ class PFFormField {
 				$f->mFieldArgs[$sub_components[0]] = $sub_components[1];
 
 				// Then, do all special handling.
+				// defaults:
+				self::$mValuesSourceType = null;
+				self::$mValuesSource = null;
 				if ( $sub_components[0] == 'input type' ) {
 					$f->mInputType = $sub_components[1];
 				} elseif ( $sub_components[0] == 'default' ) {
