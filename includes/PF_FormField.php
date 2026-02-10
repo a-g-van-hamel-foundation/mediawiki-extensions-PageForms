@@ -251,6 +251,10 @@ class PFFormField {
 			$f->mFieldArgs['values from namespace'] = $namespaceFromTemplate;
 		}
 
+		// Defaults
+		self::$mValuesSourceType = null;
+		self::$mValuesSource = null;
+
 		// Cycle through the other components.
 		for ( $i = 2; $i < count( $tag_components ); $i++ ) {
 			$component = trim( $tag_components[$i] );
@@ -285,9 +289,6 @@ class PFFormField {
 				$f->mFieldArgs[$sub_components[0]] = $sub_components[1];
 
 				// Then, do all special handling.
-				// defaults:
-				self::$mValuesSourceType = null;
-				self::$mValuesSource = null;
 				if ( $sub_components[0] == 'input type' ) {
 					$f->mInputType = $sub_components[1];
 				} elseif ( $sub_components[0] == 'default' ) {
