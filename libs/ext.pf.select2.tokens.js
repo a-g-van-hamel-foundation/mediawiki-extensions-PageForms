@@ -170,17 +170,26 @@ const Sortable = require( 'ext.pageforms.sortable' );
 				if ( $target.is( $("span.select2-match-entire") ) ) {
 					$target = $target.parent();
 				}
-				// get the text and id of the clicked value
-				const targetData = $target.data();
-				const clickedValue = $target[0].title;
-				const clickedValueId = targetData.select2Id;
+				// get the label of the clicked token. Because the
+				// 'title' attribute of the li tag is unreliable
+				// (if set, may contain either label or value)
+				// we get it from the tag's content
+				const clickedLabel = $target[0].innerText.replace("×","");
+				// get the value for corresponding label from
+				// select option
+				let clickedValue = clickedLabel;
+				inputData.$element[0].querySelectorAll("option").forEach( (option) => {
+					if ( option.textContent === clickedLabel ) {
+						clickedValue = option.value;
+					}
+				} );
 
 				// remove that value from select2 selection
 				const newValue = $.grep(inputData.val(), (value) => value !== clickedValue);
 				$input.val(newValue).trigger("change");
 
-				// set the currently entered text to equal the clicked value
-				inputData.$container.find(".select2-search__field").val(clickedValue).trigger("input").focus();
+				// set the currently entered text to equal the clicked label
+				inputData.$container.find(".select2-search__field").val(clickedLabel).trigger("input").focus();
 			} );
 		}
 		const $loadingIcon = $( '<img src = "' + mw.config.get( 'wgPageFormsScriptPath' ) + '/skins/loading.gif'
