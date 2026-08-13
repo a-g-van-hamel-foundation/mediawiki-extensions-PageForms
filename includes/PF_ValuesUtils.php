@@ -9,6 +9,10 @@
 
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Title\Title;
+#use SMWQueryProcessor;
+# use SMW\Query\QueryProcessor as SMWQueryProcessor; # SMW 7
+use SMW\DIWikiPage;
+use SMW\DIProperty;
 
 class PFValuesUtils {
 
@@ -30,9 +34,9 @@ class PFValuesUtils {
 		if ( $subject === null ) {
 			$page = null;
 		} else {
-			$page = \SMW\DIWikiPage::newFromTitle( $subject );
+			$page = DIWikiPage::newFromTitle( $subject );
 		}
-		$property = \SMW\DIProperty::newFromUserLabel( $propID );
+		$property = DIProperty::newFromUserLabel( $propID );
 		$res = $store->getPropertyValues( $page, $property, $requestOptions );
 		$values = [];
 		foreach ( $res as $value ) {
@@ -436,7 +440,7 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		}
 
 		global $wgPageFormsUseDisplayTitle;
-		$conceptDI = \SMW\DIWikiPage::newFromTitle( $conceptTitle );
+		$conceptDI = DIWikiPage::newFromTitle( $conceptTitle );
 		$desc = new \SMW\Query\Language\ConceptDescription( $conceptDI );
 		$printout = new \SMW\Query\PrintRequest( \SMW\Query\PrintRequest::PRINT_THIS, "" );
 		$desc->addPrintRequest( $printout );
