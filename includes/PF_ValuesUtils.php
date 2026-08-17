@@ -785,7 +785,7 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		return $names_array;
 	}
 
-	public static function getAutocompletionTypeAndSource( &$field_args ) {
+	public static function getAutocompletionTypeAndSource( &$field_args ): array {
 		global $wgCapitalLinks;
 
 		if ( array_key_exists( 'values from property', $field_args ) ) {
@@ -839,7 +839,7 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 			$autocompletionSource = null;
 		}
 
-		if ( $wgCapitalLinks && in_array( $autocompleteFieldType, [ 'category', 'concept', 'namespace', 'property' ] ) ) {
+		if ( $autocompletionSource && $wgCapitalLinks && in_array( $autocompleteFieldType ?? [], [ 'category', 'concept', 'namespace', 'property' ] ) ) {
 			$autocompletionSource = PFUtils::getContLang()->ucfirst( $autocompletionSource );
 		}
 
