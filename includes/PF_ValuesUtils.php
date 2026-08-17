@@ -9,8 +9,7 @@
 
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Title\Title;
-#use SMWQueryProcessor;
-# use SMW\Query\QueryProcessor as SMWQueryProcessor; # SMW 7
+use SMW\Services\ServicesFactory;
 use SMW\DIWikiPage;
 use SMW\DIProperty;
 
@@ -441,7 +440,7 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 
 		global $wgPageFormsUseDisplayTitle;
 		$conceptDI = DIWikiPage::newFromTitle( $conceptTitle );
-		$desc = new \SMW\Query\Language\ConceptDescription( $conceptDI );
+		$desc = ServicesFactory::getInstance()->getQueryFactory()->newDescriptionFactory()->newConceptDescription( $conceptDI );
 		$printout = new \SMW\Query\PrintRequest( \SMW\Query\PrintRequest::PRINT_THIS, "" );
 		$desc->addPrintRequest( $printout );
 		$query = new SMWQuery( $desc );
@@ -785,7 +784,11 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 		return $names_array;
 	}
 
-	public static function getAutocompletionTypeAndSource( &$field_args ): array {
+	/**
+	 * @param array $field_args
+	 * @return string[]|null[]
+	 */
+	public static function getAutocompletionTypeAndSource( array &$field_args ): array {
 		global $wgCapitalLinks;
 
 		if ( array_key_exists( 'values from property', $field_args ) ) {
@@ -835,18 +838,22 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 			$autocompletionSource = $field_args['semantic_property'];
 			$autocompleteFieldType = 'property';
 		} else {
-			$autocompleteFieldType = null;
-			$autocompletionSource = null;
+			return [ null, null ];
 		}
 
-		if ( $autocompletionSource && $wgCapitalLinks && in_array( $autocompleteFieldType ?? [], [ 'category', 'concept', 'namespace', 'property' ] ) ) {
+		if ( $autocompletionSource && $wgCapitalLinks && in_array( $autocompleteFieldType, [ 'category', 'concept', 'namespace', 'property' ] ) ) {
 			$autocompletionSource = PFUtils::getContLang()->ucfirst( $autocompletionSource );
 		}
 
 		return [ $autocompleteFieldType, $autocompletionSource ];
 	}
 
-	public static function getRemoteDataTypeAndPossiblySetAutocompleteValues( $autocompleteFieldType, $autocompletionSource, $field_args, $autocompleteSettings ) {
+	public static function getRemoteDataTypeAndPossiblySetAutocompleteValues(
+		?string $autocompleteFieldType,
+		?string $autocompletionSource,
+		array $field_args,
+		string $autocompleteSettings
+	): ?string {
 		global $wgPageFormsMaxLocalAutocompleteValues, $wgPageFormsAutocompleteValues;
 
 		// 'reverselookup' may exist in $field_args if e.g.
@@ -858,7 +865,7 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 			// Autocompletion from URL is always done remotely.
 			return $autocompleteFieldType;
 		}
-		if ( $autocompletionSource == '' ) {
+		if ( $autocompletionSource == '' || $autocompletionSource == null ) {
 			// No autocompletion.
 			return null;
 		}
@@ -891,10 +898,10 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language \"" . $wgLanguageCode
 	 * @param bool $is_list
 	 * @return string[]
 	 */
-	public static function setAutocompleteValues( $field_args, $is_list ) {
-		[ $autocompleteFieldType, $autocompletionSource ] =
-			self::getAutocompletionTypeAndSource( $field_args );
-		$autocompleteSettings = $autocompletionSource;
+	public static function setAutocompleteValues( $field_args, $is_list ): array {
+		[ $autocompleteFieldType, $autocompletionSource ] = self::getAutocompletionTypeAndSource( $field_args );
+
+		$autocompleteSettings = $autocompletionSource ?? "";
 		if ( $is_list ) {
 			$autocompleteSettings .= ',list';
 			if ( array_key_exists( 'delimiter', $field_args ) ) {
